@@ -20,6 +20,7 @@ import java.util.List;
 public final class SleepTask extends Task {
     @Nullable private BlockPos bed;
     private boolean navigating;
+    private boolean closer;
     private int attempts;
 
     @Override
@@ -52,9 +53,9 @@ public final class SleepTask extends Task {
             bed = null;
             return ++attempts > 3 ? fail("bed's gone") : Status.RUNNING;
         }
-        if (!npc.hands().inReach(bed)) {
+        if (!npc.hands().inReach(bed) || closer && npc.pos().squaredDistanceTo(net.minecraft.util.math.Vec3d.ofCenter(bed)) > 4) {
             if (!navigating) {
-                npc.nav().navigate(PathFinder.reach(bed, InteractionControl.REACH - 1.5));
+                npc.nav().navigate(PathFinder.reach(bed, closer ? 2.0 : InteractionControl.REACH - 1.5));
                 navigating = true;
             }
             if (npc.nav().tick() == Navigator.State.FAILED) return fail("can't reach the bed");
@@ -68,6 +69,7 @@ public final class SleepTask extends Task {
             if (why.contains("NOT_POSSIBLE_NOW")) return fail("it's not night yet");
             if (why.contains("TOO_FAR") || why.contains("OBSTRUCTED")) {
                 navigating = false;
+                closer = true;
                 return ++attempts > 4 ? fail("can't get into that bed") : Status.RUNNING;
             }
             return fail("can't sleep right now");

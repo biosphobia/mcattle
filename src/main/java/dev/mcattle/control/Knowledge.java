@@ -225,6 +225,28 @@ public final class Knowledge {
     }
 
     /** Rough "effort" to get one of an item, used to pick between crafting, mining, smelting and hunting. */
+    /** Cost of making the item by crafting only, ignoring recipes that need anything in {@code exclude}. */
+    public static double craftCost(MinecraftServer server, Item item, InventoryControl inv, Set<Item> exclude) {
+        double best = 1e6;
+        Map<Item, Double> memo = new HashMap<>();
+        for (CraftingRecipe r : craftingRecipes(server, item)) {
+            double sum = 2;
+            int outCount = Math.max(1, r.getOutput(server.getRegistryManager()).getCount());
+            for (Ingredient ing : r.getIngredients()) {
+                if (ing.isEmpty()) continue;
+                double cheapest = 1e6;
+                for (ItemStack option : ing.getMatchingStacks()) {
+                    if (exclude.contains(option.getItem())) continue;
+                    Set<Item> visiting = new HashSet<>(exclude);
+                    cheapest = Math.min(cheapest, estimateCost(server, option.getItem(), inv, 1, visiting, memo));
+                }
+                sum += cheapest / outCount;
+            }
+            best = Math.min(best, sum);
+        }
+        return best;
+    }
+
     public static double estimateCost(MinecraftServer server, Item item, InventoryControl inv) {
         return estimateCost(server, item, inv, 0, new HashSet<>(), new HashMap<>());
     }

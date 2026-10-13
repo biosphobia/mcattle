@@ -46,6 +46,7 @@ public final class GiveTask extends Task {
         if (have == 0) return fail("i don't have any " + query.describe());
 
         Entity e = target.entity(npc);
+        if (e != null && e.getWorld() != npc.world()) return fail("can't, you're in another dimension");
         Vec3d pos = target.position(npc);
         if (pos == null) return fail("where did " + target.describe() + " go?");
         double dist = npc.pos().distanceTo(pos);

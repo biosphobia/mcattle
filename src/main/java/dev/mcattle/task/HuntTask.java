@@ -17,6 +17,7 @@ public final class HuntTask extends Task {
     private int kills;
     private int searches;
     private boolean collecting;
+    private LivingEntity hunting;
 
     /** @param counted stop when the inventory holds {@code amount} of these; null = stop after {@code amount} kills */
     public HuntTask(EntityType<?> type, @Nullable ItemQuery counted, int amount) {
@@ -31,7 +32,10 @@ public final class HuntTask extends Task {
         if (hasChild()) {
             Status s = tickChild(npc);
             if (s == Status.RUNNING) return Status.RUNNING;
-            if (!collecting && s == Status.SUCCESS) {
+            if (!collecting && hunting != null) {
+                boolean killed = !hunting.isAlive();
+                hunting = null;
+                if (!killed) return Status.RUNNING;
                 kills++;
                 collecting = true;
                 setChild(new CollectItemsTask(6, x -> true, 20 * 5), npc);
@@ -47,6 +51,7 @@ public final class HuntTask extends Task {
             setChild(new ExploreTask(64, 20 * 30), npc);
             return Status.RUNNING;
         }
+        hunting = prey;
         setChild(new AttackTask(Target.of(prey), true, 60, false), npc);
         return Status.RUNNING;
     }

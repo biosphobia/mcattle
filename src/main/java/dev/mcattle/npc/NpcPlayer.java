@@ -114,6 +114,11 @@ public class NpcPlayer extends ServerPlayerEntity {
         world.getChunkManager().loadEntity(this);
     }
 
+    /** Clears the "removed" flag left over from the join path (same as other fake-player mods do). */
+    public void markPresent() {
+        unsetRemoved();
+    }
+
     /** Shows hat, jacket and sleeve layers of the skin, like a client with default skin settings. */
     public void showAllSkinLayers() {
         getDataTracker().set(PLAYER_MODEL_PARTS, (byte) 0x7f);

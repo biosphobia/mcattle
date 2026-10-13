@@ -39,7 +39,7 @@ public final class ChestTask extends Task {
         if (chest == null) {
             List<BlockPos> found = new BlockSearch(npc.world(), npc.npc().getBlockPos(), 24, 8,
                     s -> s.getBlock() instanceof ChestBlock || s.getBlock() instanceof BarrelBlock,
-                    (p, s) -> !deposit || hasMatching(npc, p), 1).runNow();
+                    (p, s) -> deposit || chestContains(npc, p), 1).runNow();
             if (found.isEmpty()) return fail(deposit ? "there's no chest around" : "no chest nearby has " + query.describe());
             chest = found.get(0);
         }
@@ -78,8 +78,11 @@ public final class ChestTask extends Task {
         return npc.world().getBlockEntity(pos) instanceof Inventory inv ? inv : null;
     }
 
-    private boolean hasMatching(NpcBrain npc, BlockPos pos) {
-        return true;
+    private boolean chestContains(NpcBrain npc, BlockPos pos) {
+        Inventory inv = inventoryAt(npc, pos);
+        if (inv == null) return false;
+        for (int i = 0; i < inv.size(); i++) if (query.test(inv.getStack(i))) return true;
+        return false;
     }
 
     private int depositInto(NpcBrain npc, Inventory chest) {

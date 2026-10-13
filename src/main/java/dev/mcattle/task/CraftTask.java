@@ -42,14 +42,40 @@ public final class CraftTask extends Task {
     /**
      * @param counted what counts toward the goal (usually just the item, but "any planks" for tag requests)
      */
-    public CraftTask(Item item, int targetTotal, ItemQuery counted) {
+    public CraftTask(Item item, int targetTotal, ItemQuery counted, Set<Item> chain) {
         this.item = item;
         this.targetTotal = Math.max(1, targetTotal);
         this.counted = counted;
+        Set<Item> c = new HashSet<>(chain);
+        c.add(item);
+        this.chain = c;
+    }
+
+    public CraftTask(Item item, int targetTotal, ItemQuery counted) {
+        this(item, targetTotal, counted, Set.of());
     }
 
     public CraftTask(Item item, int targetTotal) {
         this(item, targetTotal, ItemQuery.of(item));
+    }
+
+    /** This item plus everything being produced above it in the task chain. */
+    private final Set<Item> chain;
+
+    /** True if some ingredient can only be satisfied by an item we're already trying to make (a loop). */
+    private boolean circular(CraftingRecipe r) {
+        for (Ingredient ing : r.getIngredients()) {
+            if (ing.isEmpty()) continue;
+            boolean escape = false;
+            for (ItemStack opt : ing.getMatchingStacks()) {
+                if (!chain.contains(opt.getItem())) {
+                    escape = true;
+                    break;
+                }
+            }
+            if (!escape) return true;
+        }
+        return false;
     }
 
     @Override
@@ -60,7 +86,7 @@ public final class CraftTask extends Task {
             if (s == Status.RUNNING) return Status.RUNNING;
             if (s == Status.FAILURE) return Status.FAILURE;
         }
-        List<CraftingRecipe> recipes = Knowledge.craftingRecipes(npc.server(), item);
+        List<CraftingRecipe> recipes = Knowledge.craftingRecipes(npc.server(), item).stream().filter(r -> !circular(r)).toList();
         if (recipes.isEmpty()) return fail("can't craft " + TaskUtil.pretty(item));
 
         // prefer a recipe we can do right now; otherwise the one with the cheapest missing ingredients
@@ -140,11 +166,11 @@ public final class CraftTask extends Task {
             if (npc.inventory().count(ing) >= need) continue;
             ItemStack[] options = ing.getMatchingStacks();
             if (options.length == 0) return null;
-            Item preferred = Arrays.stream(options).map(ItemStack::getItem)
+            Item preferred = Arrays.stream(options).map(ItemStack::getItem).filter(i -> !chain.contains(i))
                     .min(Comparator.comparingDouble(i -> Knowledge.estimateCost(npc.server(), i, npc.inventory())))
                     .orElse(options[0].getItem());
             ItemQuery q = ItemQuery.category(TaskUtil.pretty(preferred), ing, preferred);
-            steps.add(new ObtainTask(q, need));
+            steps.add(new ObtainTask(q, need, chain));
         }
         if (steps.isEmpty()) return null;
         return new SequenceTask(steps, "gathering ingredients for " + TaskUtil.pretty(item));
@@ -237,6 +263,6 @@ public final class CraftTask extends Task {
 
     @Override
     public Task helpCopy(NpcBrain helper) {
-        return new CraftTask(item, targetTotal, counted);
+        return new CraftTask(item, targetTotal, counted, chain);
     }
 }

@@ -32,9 +32,17 @@ public final class ObtainTask extends Task {
     private int routesTried;
     private int lastHave;
 
+    /** Items being produced further up this task chain; never route through them again (prevents ingot <-> nugget loops). */
+    private final Set<Item> ancestors;
+
     public ObtainTask(ItemQuery query, int count) {
+        this(query, count, Set.of());
+    }
+
+    public ObtainTask(ItemQuery query, int count, Set<Item> ancestors) {
         this.query = query;
         this.count = Math.max(1, count);
+        this.ancestors = ancestors;
     }
 
     private record Route(String key, double cost, Task task) {
@@ -62,7 +70,7 @@ public final class ObtainTask extends Task {
             setChild(new CollectItemsTask(12, query, 20 * 10), npc);
             return Status.RUNNING;
         }
-        if (++routesTried > 12) return fail("couldn't get " + query.describe());
+        if (++routesTried > 12 || ancestors.size() > 10) return fail("couldn't get " + query.describe());
         Route route = bestRoute(npc);
         if (route == null) {
             String why = failureReason != null ? failureReason : "no idea how to get " + query.describe();
@@ -85,6 +93,9 @@ public final class ObtainTask extends Task {
         List<Item> candidates = query.preferred() != null && query.tag() == null ? List.of(query.preferred()) : query.candidates();
         if (candidates.size() > 24) candidates = candidates.subList(0, 24);
         for (Item item : candidates) {
+            if (ancestors.contains(item)) continue;
+            Set<Item> chain = new HashSet<>(ancestors);
+            chain.add(item);
             ItemQuery exact = ItemQuery.of(item);
             if (Knowledge.isLog(item) && !anyLog) {
                 routes.add(new Route("chop:" + item, 3, new ChopTask(exact, count, query)));
@@ -98,8 +109,8 @@ public final class ObtainTask extends Task {
             }
             List<CraftingRecipe> recipes = Knowledge.craftingRecipes(server, item);
             if (!recipes.isEmpty()) {
-                double cost = Knowledge.estimateCost(server, item, npc.inventory());
-                routes.add(new Route("craft:" + item, cost, new CraftTask(item, count, query)));
+                double cost = Knowledge.craftCost(server, item, npc.inventory(), chain);
+                routes.add(new Route("craft:" + item, cost, new CraftTask(item, count, query, chain)));
             }
             List<SmeltingRecipe> smelts = Knowledge.smeltingRecipes(server, item);
             if (!smelts.isEmpty()) {
@@ -111,7 +122,7 @@ public final class ObtainTask extends Task {
                         }
                     }
                 }
-                routes.add(new Route("smelt:" + item, cost, new SmeltTask(item, count, query)));
+                routes.add(new Route("smelt:" + item, cost, new SmeltTask(item, count, query, chain)));
             }
             for (EntityType<?> type : Knowledge.mobSources(item)) {
                 routes.add(new Route("hunt:" + item + ":" + type.getUntranslatedName(), 25, new HuntTask(type, query, count)));

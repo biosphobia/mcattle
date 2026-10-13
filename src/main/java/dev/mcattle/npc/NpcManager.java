@@ -205,7 +205,7 @@ public final class NpcManager {
             npc.setHealth(npc.getMaxHealth());
         }
         if (npc.getHealth() <= 0) npc.setHealth(npc.getMaxHealth()); // saved while dead (server stopped mid-respawn)
-        npc.unsetRemoved();
+        npc.markPresent();
         npc.setStepHeight(0.6f);
         npc.showAllSkinLayers();
         ServerWorld actual = npc.getServerWorld();

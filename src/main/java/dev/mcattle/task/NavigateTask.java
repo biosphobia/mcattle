@@ -4,7 +4,7 @@ import dev.mcattle.control.Navigator;
 import dev.mcattle.control.PathFinder;
 import dev.mcattle.npc.NpcBrain;
 
-/** Runs the navigator toward a goal; optionally digs through any non-precious block (for tunneling). */
+/** Runs the navigator toward a goal. With tunnel=true and protectBuilds off it may dig through any non-precious block. */
 public final class NavigateTask extends Task {
     private final PathFinder.Goal goal;
     private final String description;
@@ -21,12 +21,19 @@ public final class NavigateTask extends Task {
     protected Status run(NpcBrain npc) {
         if (!started) {
             started = true;
+            npc.nav().setNaturalOnly(!tunnel || npc.config().npc.protectBuilds);
             npc.nav().navigate(goal);
         }
         Navigator.State s = npc.nav().tick();
         if (s == Navigator.State.ARRIVED) return Status.SUCCESS;
         if (s == Navigator.State.FAILED) return npc.nav().isPartial() ? Status.SUCCESS : fail("can't get there");
         return Status.RUNNING;
+    }
+
+    @Override
+    public void stop(NpcBrain npc) {
+        super.stop(npc);
+        npc.nav().setNaturalOnly(true);
     }
 
     @Override

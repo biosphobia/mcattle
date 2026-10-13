@@ -23,7 +23,7 @@ public final class BreakBlockTask extends Task {
     @Override
     protected Status run(NpcBrain npc) {
         if (npc.world().getBlockState(pos).isAir()) return Status.SUCCESS;
-        if (npc.hands().inReach(pos) && !npc.hands().bodyBlocks(pos.up(2))) {
+        if (npc.hands().inReach(pos)) {
             if (navigating) {
                 npc.nav().stop();
                 navigating = false;

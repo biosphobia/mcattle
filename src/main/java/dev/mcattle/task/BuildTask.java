@@ -26,6 +26,7 @@ public final class BuildTask extends Task {
     @Nullable private BuildJob.Cell cell;
     private int cellTicks;
     private boolean navigating;
+    private boolean steppingAway;
     private final Set<String> unobtainable = new HashSet<>();
     private boolean cleaningUp;
     private int waitTicks;
@@ -61,7 +62,7 @@ public final class BuildTask extends Task {
             navigating = false;
             if (cell == null) {
                 // others are busy with the remaining blocks: hang around
-                if (++waitTicks > 20 * 60) return Status.SUCCESS;
+                if (++waitTicks > 20 * 60) return job.isDone() ? Status.SUCCESS : fail("can't reach the rest of the " + job.name());
                 return Status.RUNNING;
             }
         }
@@ -117,11 +118,21 @@ public final class BuildTask extends Task {
         }
 
         // 3. get there and place it
+        if (steppingAway) {
+            Navigator.State st = npc.nav().tick();
+            if (st == Navigator.State.MOVING || st == Navigator.State.SEARCHING) return Status.RUNNING;
+            steppingAway = false;
+            if (npc.hands().bodyBlocks(cell.pos)) {
+                job.finish(cell, false);
+                cell = null;
+                return Status.RUNNING;
+            }
+        }
         if (!moveIntoReach(npc, cell.pos)) return Status.RUNNING;
         if (npc.hands().bodyBlocks(cell.pos)) {
-            // standing where the block goes: step away
-            npc.nav().navigate(PathFinder.reach(cell.pos, InteractionControl.REACH - 1));
-            navigating = true;
+            // standing where the block goes: step out of the way first
+            npc.nav().navigate(PathFinder.away(cell.pos, 2));
+            steppingAway = true;
             return Status.RUNNING;
         }
         if (npc.npc().isCreative() && npc.inventory().count(item) == 0) {

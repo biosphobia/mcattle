@@ -36,10 +36,19 @@ public final class SmeltTask extends Task {
     private int waitTicks;
     private boolean gathered;
 
+    private final java.util.Set<Item> chain;
+
     public SmeltTask(Item output, int targetTotal, ItemQuery counted) {
+        this(output, targetTotal, counted, java.util.Set.of());
+    }
+
+    public SmeltTask(Item output, int targetTotal, ItemQuery counted, java.util.Set<Item> chain) {
         this.output = output;
         this.targetTotal = Math.max(1, targetTotal);
         this.counted = counted;
+        java.util.Set<Item> c = new java.util.HashSet<>(chain);
+        c.add(output);
+        this.chain = c;
     }
 
     private int missing(NpcBrain npc) {
@@ -59,7 +68,7 @@ public final class SmeltTask extends Task {
             if (recipes.isEmpty()) return fail("can't smelt " + TaskUtil.pretty(output));
             SmeltingRecipe recipe = recipes.get(0);
             input = recipe.getIngredients().get(0);
-            inputItem = Arrays.stream(input.getMatchingStacks()).map(ItemStack::getItem)
+            inputItem = Arrays.stream(input.getMatchingStacks()).map(ItemStack::getItem).filter(i -> !chain.contains(i))
                     .min(Comparator.comparingDouble(i -> Knowledge.estimateCost(npc.server(), i, npc.inventory())))
                     .orElse(null);
             if (inputItem == null) return fail("can't smelt " + TaskUtil.pretty(output));
@@ -70,7 +79,7 @@ public final class SmeltTask extends Task {
         int needInput = missing - inFurnace;
         if (!gathered && needInput > 0 && npc.inventory().count(input) < needInput) {
             gathered = true;
-            setChild(new ObtainTask(ItemQuery.category(TaskUtil.pretty(inputItem), input, inputItem), needInput), npc);
+            setChild(new ObtainTask(ItemQuery.category(TaskUtil.pretty(inputItem), input, inputItem), needInput, chain), npc);
             return Status.RUNNING;
         }
         // 2. fuel
@@ -79,8 +88,9 @@ public final class SmeltTask extends Task {
             if (ticks > 20 * 60 * 5) return fail("ran out of fuel");
             int coal = npc.inventory().count(s -> s.isIn(Tags.ITEM_COALS));
             if (coal == 0) {
-                int logs = (int) Math.ceil(Math.max(1, needInput) / 1.5);
-                setChild(new ObtainTask(ItemQuery.tag(Tags.ITEM_LOGS, "logs", Items.OAK_LOG), npc.inventory().count(s -> s.isIn(Tags.ITEM_LOGS)) + logs), npc);
+                int planks = (int) Math.ceil(Math.max(1, needInput) / 1.5) + 1;
+                ItemQuery plankQuery = ItemQuery.tag(Tags.ITEM_PLANKS, "planks", Items.OAK_PLANKS);
+                setChild(new ObtainTask(plankQuery, npc.inventory().count(plankQuery) + planks, chain), npc);
                 return Status.RUNNING;
             }
         }
