@@ -55,11 +55,29 @@ public final class LocalIntentParser {
      * @param playerNames online player names (for "give it to Alex")
      */
     public static ParsedCommand parse(String message, Collection<String> npcNames, Collection<String> playerNames) {
+        return parse(message, npcNames, Map.of(), playerNames);
+    }
+
+    /** Phrases that set up something lasting: these must reach the language model so it can be remembered. */
+    private static final Pattern LASTING = Pattern.compile(
+            "\\b(from now on|from now|starting now|remember|don'?t forget|forget|always|never|every time|whenever|anymore|any more|"
+                    + "stop (talking|speaking|greeting|saying|being|calling|acting)|start (talking|speaking|calling|acting)|"
+                    + "your name is|call me|call yourself|you are now|you're now|be more|be less|talk like|speak like|act like|"
+                    + "from here on|for the rest)\\b");
+
+    /**
+     * @param aliases extra names per NPC (nicknames players gave them), keyed by the NPC's real name
+     */
+    public static ParsedCommand parse(String message, Collection<String> npcNames, Map<String, List<String>> aliases,
+                                      Collection<String> playerNames) {
         String text = " " + normalize(message) + " ";
+        boolean lasting = LASTING.matcher(text).find();
 
         List<String> addressed = new ArrayList<>();
         for (String npc : npcNames) {
-            for (String nick : NameGenerator.nicknames(npc)) {
+            List<String> words = new ArrayList<>(NameGenerator.nicknames(npc));
+            for (String alias : aliases.getOrDefault(npc, List.of())) words.add(alias.toLowerCase(Locale.ROOT));
+            for (String nick : words) {
                 Pattern p = Pattern.compile("\\b" + Pattern.quote(nick) + "\\b");
                 Matcher m = p.matcher(text);
                 if (m.find()) {
@@ -86,7 +104,8 @@ public final class LocalIntentParser {
         // "go chop trees" -> "chop trees", but keep "go home" / "go away"
         text = text.replaceFirst("^(go|go and|and)\\s+(?!home\\b|away\\b|to\\b)", "");
 
-        boolean complex = text.matches(".*\\b(then|after that|afterwards|while|unless|until|before|but)\\b.*")
+        // only for messages clearly aimed at NPCs, so ordinary chat like "i always lose my sword" stays free
+        boolean complex = lasting && (!addressed.isEmpty() || everyone) || text.matches(".*\\b(then|after that|afterwards|while|unless|until|before|but)\\b.*")
                 || text.matches(".*\\b(and)\\b.*\\b(and|then)\\b.*")
                 || text.split(" ").length > 14;
 

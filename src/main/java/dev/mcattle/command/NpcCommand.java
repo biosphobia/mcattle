@@ -94,6 +94,19 @@ public final class NpcCommand {
                         .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
                                 .then(literal("survival").executes(ctx -> forEach(ctx, mod, b -> b.npc().changeGameMode(GameMode.SURVIVAL), "in survival")))
                                 .then(literal("creative").executes(ctx -> forEach(ctx, mod, b -> b.npc().changeGameMode(GameMode.CREATIVE), "in creative")))))
+                .then(literal("memory")
+                        .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
+                                .executes(ctx -> memory(ctx, mod, StringArgumentType.getString(ctx, "npc")))))
+                .then(literal("remember")
+                        .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
+                                .then(argument("text", StringArgumentType.greedyString())
+                                        .executes(ctx -> forEach(ctx, mod, b -> dev.mcattle.npc.NpcMemory.apply(b,
+                                                List.of(StringArgumentType.getString(ctx, "text")), List.of(), "", ctx.getSource().getPlayer()), "will remember that")))))
+                .then(literal("forget")
+                        .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
+                                .then(argument("what", StringArgumentType.greedyString())
+                                        .suggests((ctx, b) -> CommandSource.suggestMatching(List.of("all"), b))
+                                        .executes(ctx -> forget(ctx, mod, StringArgumentType.getString(ctx, "what"))))))
                 .then(literal("usage").executes(ctx -> {
                     String report = mod.llm() == null ? "LLM disabled" : mod.llm().usageReport();
                     ctx.getSource().sendFeedback(() -> Text.literal(report), false);
@@ -186,6 +199,48 @@ public final class NpcCommand {
             ctx.getSource().sendFeedback(() -> Text.literal(line), false);
         }
         return mod.npcs().all().size();
+    }
+
+    private static int memory(CommandContext<ServerCommandSource> ctx, MCattle mod, String spec) {
+        for (NpcBrain b : select(ctx, mod, spec)) {
+            var id = b.identity();
+            ctx.getSource().sendFeedback(() -> Text.literal(b.name() + " (" + id.persona + ")").formatted(Formatting.GOLD), false);
+            if (id.memories().isEmpty()) ctx.getSource().sendFeedback(() -> Text.literal("  no memories yet"), false);
+            for (int i = 0; i < id.memories().size(); i++) {
+                String line = "  " + (i + 1) + ". " + id.memories().get(i);
+                ctx.getSource().sendFeedback(() -> Text.literal(line), false);
+            }
+            String settings = dev.mcattle.npc.NpcMemory.describe(b);
+            int cut = settings.indexOf("settings:");
+            if (cut >= 0) ctx.getSource().sendFeedback(() -> Text.literal("  " + settings.substring(cut)).formatted(Formatting.GRAY), false);
+        }
+        return 1;
+    }
+
+    private static int forget(CommandContext<ServerCommandSource> ctx, MCattle mod, String what) {
+        return forEach(ctx, mod, b -> {
+            var id = b.identity();
+            if (what.equalsIgnoreCase("all")) {
+                id.memories().clear();
+                id.aliases().clear();
+                id.socialness = null;
+                id.retaliate = null;
+                id.chatty = null;
+                id.follow = null;
+                id.guard = null;
+                id.styleLines = null;
+                mod.npcs().saveRegistry();
+            } else {
+                try {
+                    int index = Integer.parseInt(what.trim()) - 1;
+                    if (index >= 0 && index < id.memories().size()) {
+                        dev.mcattle.npc.NpcMemory.apply(b, List.of(), List.of(id.memories().get(index)), "", null);
+                    }
+                } catch (NumberFormatException e) {
+                    dev.mcattle.npc.NpcMemory.apply(b, List.of(), List.of(what), "", null);
+                }
+            }
+        }, "forgot it");
     }
 
     private static int inventory(CommandContext<ServerCommandSource> ctx, MCattle mod, String spec) {

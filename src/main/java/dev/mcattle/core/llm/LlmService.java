@@ -97,6 +97,10 @@ public final class LlmService implements AutoCloseable {
         return submit(() -> provider.design(context), "Design");
     }
 
+    public CompletableFuture<Optional<StyleLines>> restyle(String context) {
+        return submit(() -> provider.restyle(context), "Restyle");
+    }
+
     public CompletableFuture<Optional<ActivityTurn>> direct(String context) {
         return submit(() -> provider.direct(context), "Activity");
     }

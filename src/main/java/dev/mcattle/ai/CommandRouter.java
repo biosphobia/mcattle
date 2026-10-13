@@ -66,7 +66,9 @@ public final class CommandRouter {
 
     private void handle(ServerPlayerEntity speaker, String text, boolean voice, @Nullable List<NpcBrain> forced) {
         var cfg = mod.config();
-        ParsedCommand parsed = LocalIntentParser.parse(text, manager().names(), onlinePlayerNames());
+        java.util.Map<String, List<String>> aliases = new java.util.HashMap<>();
+        for (NpcBrain b : manager().all()) aliases.put(b.name(), b.identity().aliases());
+        ParsedCommand parsed = LocalIntentParser.parse(text, manager().names(), aliases, onlinePlayerNames());
 
         List<NpcBrain> addressed = new ArrayList<>();
         for (String n : parsed.addressed()) {
@@ -123,7 +125,7 @@ public final class CommandRouter {
                 } else if (parsed.understood()) {
                     applyLocal(finalTargets, parsed, speaker);
                 } else {
-                    finalTargets.get(0).say(Lines.confused(finalTargets.get(0).random()));
+                    finalTargets.get(0).say(Lines.confused(finalTargets.get(0)));
                 }
             }));
             return;
@@ -133,7 +135,7 @@ public final class CommandRouter {
             applyLocal(targets, parsed, speaker);
         } else {
             NpcBrain first = targets.get(0);
-            first.say(parsed.question() ? Lines.confused(first.random()) : Lines.noLlm(first.random()));
+            first.say(parsed.question() ? Lines.confused(first) : Lines.noLlm(first));
             MCattle.LOGGER.debug("Not sending to LLM: {}", blocked);
         }
     }
@@ -153,7 +155,7 @@ public final class CommandRouter {
     private void applyLocal(List<NpcBrain> targets, ParsedCommand parsed, ServerPlayerEntity speaker) {
         boolean first = true;
         for (NpcBrain npc : targets) {
-            String say = first || npc.random().nextInt(3) == 0 ? Lines.ack(npc.random()) : "";
+            String say = first || npc.random().nextInt(3) == 0 ? Lines.ack(npc) : "";
             apply(npc, say, "replace", parsed.steps(), speaker);
             first = false;
         }
@@ -168,6 +170,7 @@ public final class CommandRouter {
             List<Orders.Step> steps = order.steps() == null ? List.of() : order.steps();
             String mode = order.mode() == null ? "replace" : order.mode().toLowerCase(Locale.ROOT);
             apply(npc, order.say() == null ? "" : order.say(), mode, steps, speaker);
+            dev.mcattle.npc.NpcMemory.apply(npc, order.remember(), order.forget(), order.settings(), speaker);
         }
     }
 

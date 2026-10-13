@@ -75,6 +75,8 @@ public final class Situation {
             sb.append("- ").append(npc.name()).append(" [").append(npc.identity().persona).append("] hp ")
                     .append((int) Math.ceil(p.getHealth())).append(", food ").append(p.getHungerManager().getFoodLevel())
                     .append(", doing: ").append(npc.activity()).append("\n");
+            String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
+            if (!longTerm.isEmpty()) sb.append("  memory (follow it): ").append(longTerm).append("\n");
         }
         if (!players.isEmpty()) {
             sb.append("Human players nearby: ").append(String.join(", ", players.stream().map(p -> p.getName().getString()).toList())).append("\n");
@@ -103,6 +105,8 @@ public final class Situation {
             sb.append("* ").append(npc.name()).append(" [").append(npc.identity().persona).append("] at ").append(pos(p.getBlockPos()))
                     .append(", hp ").append((int) Math.ceil(p.getHealth())).append(", holding ").append(itemName(p.getMainHandStack()))
                     .append(", ").append(t == null || t.idle() ? "idle" : t.describe()).append("\n  inventory: ").append(npc.inventorySummary(12)).append("\n");
+            String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
+            if (!longTerm.isEmpty()) sb.append("  memory (follow it): ").append(longTerm).append("\n");
         }
         if (world != null) {
             for (ServerPlayerEntity p : world.getPlayers()) {
@@ -191,6 +195,8 @@ public final class Situation {
             sb.append("  around: ").append(surroundings(npc)).append("\n");
             List<String> memory = npc.memory();
             if (!memory.isEmpty()) sb.append("  recently: ").append(String.join(" / ", memory)).append("\n");
+            String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
+            if (!longTerm.isEmpty()) sb.append("  long-term memory (follow it): ").append(longTerm).append("\n");
         }
         return sb.toString();
     }

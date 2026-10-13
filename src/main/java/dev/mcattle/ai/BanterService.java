@@ -41,10 +41,12 @@ public final class BanterService {
         java.util.Collections.shuffle(candidates);
         for (NpcBrain npc : candidates) {
             if (!npc.npc().isAlive() || npc.currentTask() instanceof AttackTask) continue;
+            if (npc.identity().chatty != null && npc.identity().chatty == 0) continue;
             List<NpcBrain> group = new ArrayList<>();
             group.add(npc);
             for (NpcBrain other : mod.npcs().all()) {
-                if (other != npc && other.npc().getWorld() == npc.npc().getWorld() && other.npc().distanceTo(npc.npc()) < 16) group.add(other);
+                if (other != npc && other.npc().getWorld() == npc.npc().getWorld() && other.npc().distanceTo(npc.npc()) < 16
+                        && !(other.identity().chatty != null && other.identity().chatty == 0)) group.add(other);
             }
             List<ServerPlayerEntity> humans = npc.nearbyPlayers(16, false).stream().filter(p -> !(p instanceof NpcPlayer)).toList();
             if (group.size() < 2 && humans.isEmpty()) continue;

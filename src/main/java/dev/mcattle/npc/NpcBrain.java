@@ -297,7 +297,7 @@ public final class NpcBrain {
             orders.clear(); // the rest of the plan probably depended on this step
         } else if (status == Task.Status.SUCCESS && fromPlayer && orders.isEmpty() && finished.describe() != null
                 && random.nextInt(3) == 0 && !(finished instanceof dev.mcattle.task.SayTask)) {
-            say(Lines.done(random));
+            say(Lines.done(this));
         }
     }
 
@@ -340,9 +340,10 @@ public final class NpcBrain {
             } else {
                 startReflex(new AttackTask(Target.of(attacker), true, 30, true));
             }
-        } else if (attacker instanceof PlayerEntity player && config().npc.retaliate) {
+        } else if (attacker instanceof PlayerEntity player
+                && (identity.retaliate != null ? identity.retaliate : config().npc.retaliate)) {
             if (manager.byUuid(player.getUuid()) != null && current instanceof AttackTask) return; // NPC brawl in progress
-            say(Lines.hit(random, player.getName().getString()));
+            say(Lines.hit(this, player.getName().getString()));
             startReflex(new AttackTask(Target.of(attacker), false, 12, true));
         }
     }
@@ -351,7 +352,7 @@ public final class NpcBrain {
         clearOrders();
         reflex = null;
         listeningTo = null;
-        if (random.nextBoolean()) pendingChat.add(Lines.death(random));
+        if (random.nextBoolean()) pendingChat.add(Lines.death(this));
     }
 
     public void onDeadTick() {

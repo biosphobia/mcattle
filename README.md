@@ -5,7 +5,7 @@ have skins, show up in the tab list, and carry their own inventory, armor and he
 their own, chat, greet people, and take orders by **text chat** or **push-to-talk voice**.
 
 > **Status:** the mod builds (GitHub Actions compiles it against Minecraft 1.20.1 with Fabric Loom and runs
-> 17 unit tests; the jar is attached to each run as the `mcattle` artifact). It has **not been played in-game
+> 26 unit tests; the jar is attached to each run as the `mcattle` artifact). It has **not been played in-game
 > yet**, so expect gameplay bugs in pathfinding, building and combat edge cases. Please report what you see.
 
 ## What the NPCs do
@@ -41,6 +41,24 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
 - **Work as a team.** With no name in the message, every NPC in range takes the order. One language-model call
   plans for all of them at once, with each NPC's current task in view, so they split work, help each other
   (`help CobbleMaya`) or compete when you ask for a race.
+
+## Memory
+
+Each NPC keeps a long-term memory that survives restarts:
+
+- **Instructions and facts.** "OakJames, from now on talk like a medieval knight", "always bring me food when
+  I'm low", "never break the trees near my house", "my base is here", "call me boss". Claude stores a short
+  note ("Speaks like a medieval knight (Steve asked)") and every later request about that NPC includes it: chat,
+  plans, activities and banter all follow it. "Forget that" / "talk normally again" removes it.
+- **Behavior settings** that the model-free parts of the NPC obey too: "stop greeting me" (greetings off), "don't
+  fight back", "always follow me" / "always protect me" (what it does when it has no orders), "this is your home
+  now", "your name is Bob" (you can then address it as Bob), more or less small talk.
+- **A voice that stays in character.** When a style is remembered, one small call rewrites the NPC's instant
+  replies ("on it", "gg", "huh?", greetings) in that style, so even free, instant responses sound right.
+
+Phrases like "from now on", "always", "never", "remember", "call me" always go to Claude so they get recorded.
+`/npc memory <npc>` lists what it remembers; `/npc remember <npc> <text>` and `/npc forget <npc> <n|text|all>`
+edit it by hand.
 
 ## Keeping token use low
 
@@ -157,6 +175,8 @@ Examples:
 | `/npc inventory <npc>` | Opens the NPC's inventory as a chest (give or take items) |
 | `/npc tphere <npc>` | Teleports the NPC to you |
 | `/npc gamemode <npc> survival\|creative` | Op only. Creative NPCs build instantly, without gathering. |
+| `/npc memory <npc>` | What it remembers (instructions, facts, settings) |
+| `/npc remember <npc> <text>` · `/npc forget <npc> <n\|text\|all>` | Edit its memory by hand |
 | `/npc usage` | Language-model token usage |
 | `/npc reload` | Op only. Reloads the config. |
 

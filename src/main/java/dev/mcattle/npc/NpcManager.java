@@ -97,6 +97,7 @@ public final class NpcManager {
         String lower = name.trim().toLowerCase(Locale.ROOT);
         for (NpcBrain b : brains.values()) if (b.name().toLowerCase(Locale.ROOT).equals(lower)) return b;
         for (NpcBrain b : brains.values()) if (NameGenerator.nicknames(b.name()).contains(lower)) return b;
+        for (NpcBrain b : brains.values()) if (b.identity().aliases().contains(lower)) return b;
         return null;
     }
 

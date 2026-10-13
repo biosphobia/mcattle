@@ -206,6 +206,7 @@ public final class ActivitySession {
                 TaskFactory.Built built = TaskFactory.build(npc, steps, speaker);
                 if (!built.problems().isEmpty()) event(npc.name() + ": " + String.join("; ", built.problems()));
                 task.assign(built.tasks(), !"append".equalsIgnoreCase(order.mode()));
+                dev.mcattle.npc.NpcMemory.apply(npc, order.remember(), order.forget(), order.settings(), speaker);
             }
         }
         String wf = turn.waitFor() == null ? "steps" : turn.waitFor().toLowerCase(Locale.ROOT).trim();

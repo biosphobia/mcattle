@@ -80,6 +80,17 @@ public final class AutonomousPlanner {
                             || s.isOf(Items.COOKED_CHICKEN) || s.isOf(Items.BREAD), Items.COOKED_BEEF), 4));
         }
 
+        // remembered standing orders: "always follow me" / "always protect me"
+        var id = npc.identity();
+        if (id.guard != null) {
+            var p = npc.server().getPlayerManager().getPlayer(id.guard);
+            if (p != null && p.getWorld() == world) return own("guard", new TimedTask(new GuardTask(Target.of(p)), 20 * 60 * 5, "guarding " + p.getName().getString()));
+        }
+        if (id.follow != null) {
+            var p = npc.server().getPlayerManager().getPlayer(id.follow);
+            if (p != null) return own("follow", new TimedTask(new FollowTask(Target.of(p), 3), 20 * 60 * 5, "following " + p.getName().getString()));
+        }
+
         int pickTier = bestTier(inv, PickaxeItem.class);
         if (pickTier < 0 && inv.count(s -> s.isIn(Tags.ITEM_LOGS)) < 3 && inv.count(s -> s.isIn(Tags.ITEM_PLANKS)) < 8 && ready("wood")) {
             return own("wood", new ChopTask(ItemQuery.tag(Tags.ITEM_LOGS, "logs", Items.OAK_LOG), 8,

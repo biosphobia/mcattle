@@ -14,5 +14,8 @@ public interface LlmProvider {
     /** Decides the next round of an ongoing activity. */
     LlmResult<ActivityTurn> direct(String context) throws Exception;
 
+    /** Rewrites the canned chat lines in an NPC's speaking style. */
+    LlmResult<StyleLines> restyle(String context) throws Exception;
+
     String describe();
 }

@@ -119,4 +119,24 @@ class LocalIntentParserTest {
         assertFalse(parse("how do I make a beacon").understood());
         assertFalse(parse("tell me a joke about creepers").understood());
     }
+
+    @Test
+    void lastingInstructionsGoToTheModel() {
+        ParsedCommand c = parse("OakJames from now on talk like a pirate");
+        assertTrue(c.complex());
+        assertTrue(parse("maya stop greeting me").complex());
+        assertFalse(parse("maya stop greeting me").understood() && !parse("maya stop greeting me").complex());
+        // plain chat between players doesn't
+        assertFalse(parse("i always forget my sword lol").looksLikeCommand());
+        // a plain stop is still instant
+        ParsedCommand stop = parse("stop");
+        assertTrue(stop.understood() && !stop.complex());
+    }
+
+    @Test
+    void aliases() {
+        ParsedCommand c = LocalIntentParser.parse("bob come here", NPCS, java.util.Map.of("OakJames", List.of("bob")), PLAYERS);
+        assertEquals(List.of("OakJames"), c.addressed());
+        assertEquals("goto", c.steps().get(0).action());
+    }
 }

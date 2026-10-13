@@ -52,6 +52,12 @@ public final class OpenAiCompatibleProvider implements LlmProvider {
     }
 
     @Override
+    public LlmResult<StyleLines> restyle(String context) throws Exception {
+        return call(SystemPrompt.STYLE + "\nRespond with ONLY JSON with keys ack, done, confused, hit, death, greeting, simpleOnly (arrays of strings).",
+                context, 800, StyleLines.class);
+    }
+
+    @Override
     public LlmResult<ActivityTurn> direct(String context) throws Exception {
         return call(SystemPrompt.DIRECTOR + "\nRespond with ONLY JSON with keys notes, orders, waitFor, waitSeconds, watchArea, done.",
                 context, 2000, ActivityTurn.class);

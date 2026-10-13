@@ -51,6 +51,11 @@ public final class AnthropicProvider implements LlmProvider {
     }
 
     @Override
+    public LlmResult<StyleLines> restyle(String context) {
+        return run(request(banterModel, SystemPrompt.STYLE, context, 2048L, "low").outputConfig(StyleLines.class).build());
+    }
+
+    @Override
     public LlmResult<ActivityTurn> direct(String context) {
         return run(request(model, SystemPrompt.DIRECTOR, context, 4096L, effort).outputConfig(ActivityTurn.class).build());
     }

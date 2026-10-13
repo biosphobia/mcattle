@@ -29,7 +29,8 @@ public final class SocialBehavior {
     }
 
     public void tick(boolean idle) {
-        double socialness = npc.config().npc.socialness;
+        Integer personal = npc.identity().socialness;
+        double socialness = npc.config().npc.socialness * (personal == null ? 1 : personal);
         if (socialness <= 0) return;
         if (gestureTicks > 0 && focus != null && focus.isAlive()) {
             gestureTicks--;
@@ -58,7 +59,7 @@ public final class SocialBehavior {
                 crouchGreeting = idle;
                 gestureTicks = idle ? 24 : 0;
                 glanceTicks = idle ? 0 : 15;
-                if (!isNpc && npc.random().nextInt(3) == 0) npc.say(Lines.greeting(npc.random(), p.getName().getString()));
+                if (!isNpc && npc.random().nextInt(3) == 0) npc.say(Lines.greeting(npc, p.getName().getString()));
             } else if (roll < 0.6 * socialness) {
                 glanceTicks = 25 + npc.random().nextInt(30); // just look over
             }

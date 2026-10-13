@@ -20,7 +20,17 @@ public record Orders(
             @JsonPropertyDescription("'replace' drops the current task list, 'append' queues after it, 'none' only talks")
             String mode,
             @JsonPropertyDescription("Ordered skill calls")
-            List<Step> steps) {
+            List<Step> steps,
+            @JsonPropertyDescription("New long-term memories for this NPC: lasting instructions (speaking style, habits, rules), names, facts worth keeping. Short, include who said it. Empty list if none.")
+            List<String> remember,
+            @JsonPropertyDescription("Existing memories to delete, quoted exactly or by a distinctive phrase. Empty list if none.")
+            List<String> forget,
+            @JsonPropertyDescription("Behavior settings to change, space separated key=value: socialness=0|1|2 retaliate=true|false autonomous=true|false follow=<player>|none guard=<player>|none home=here|none nickname=<word>|none chatty=0|1|2. Empty if none.")
+            String settings) {
+
+        public NpcOrder(String npc, String say, String mode, List<Step> steps) {
+            this(npc, say, mode, steps, List.of(), List.of(), "");
+        }
     }
 
     public record Step(
