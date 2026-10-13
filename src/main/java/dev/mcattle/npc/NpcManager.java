@@ -173,12 +173,15 @@ public final class NpcManager {
         return "steve";
     }
 
-    /** 1.20.1 picks the default Steve/Alex skin from the UUID hash, so choose a UUID with the right parity. */
+    /**
+     * Without textures, 1.20.1 picks one of 18 default skins (9 characters x slim/wide) from
+     * floorMod(uuid.hashCode(), 18). Index 0 is slim Alex, 15 is wide Steve.
+     */
     private UUID uuidFor(String skinSpec) {
         UUID uuid = UUID.randomUUID();
         if (skinSpec.equals("steve") || skinSpec.equals("alex")) {
-            int want = skinSpec.equals("alex") ? 1 : 0;
-            while ((uuid.hashCode() & 1) != want) uuid = UUID.randomUUID();
+            int want = skinSpec.equals("alex") ? 0 : 15;
+            while (Math.floorMod(uuid.hashCode(), 18) != want) uuid = UUID.randomUUID();
         }
         return uuid;
     }
@@ -201,6 +204,7 @@ public final class NpcManager {
             npc.changeGameMode(GameMode.SURVIVAL);
             npc.setHealth(npc.getMaxHealth());
         }
+        if (npc.getHealth() <= 0) npc.setHealth(npc.getMaxHealth()); // saved while dead (server stopped mid-respawn)
         npc.unsetRemoved();
         npc.setStepHeight(0.6f);
         npc.showAllSkinLayers();

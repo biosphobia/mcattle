@@ -27,7 +27,13 @@ public class FakeNetworkHandler extends ServerPlayNetworkHandler {
 
     @Override
     public void disconnect(Text reason) {
-        // Idle kicks and similar don't apply to NPCs; NpcManager removes them explicitly.
+        // /kick and similar: the NPC leaves (it comes back on the next server start)
+        if (player instanceof NpcPlayer npc && npc.brain() != null) {
+            NpcBrain brain = npc.brain();
+            npc.getServer().execute(() -> {
+                if (brain.manager().byUuid(npc.getUuid()) == brain) brain.manager().remove(brain, false);
+            });
+        }
     }
 
     @Override

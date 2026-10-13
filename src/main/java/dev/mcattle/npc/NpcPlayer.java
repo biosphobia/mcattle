@@ -73,7 +73,7 @@ public class NpcPlayer extends ServerPlayerEntity {
     @Override
     public void onDeath(DamageSource damageSource) {
         super.onDeath(damageSource);
-        respawnTimer = brain != null ? brain.config().npc.respawnDelayTicks : 60;
+        respawnTimer = Math.max(1, brain != null ? brain.config().npc.respawnDelayTicks : 60);
         if (brain != null) brain.onDeath(damageSource);
     }
 
@@ -81,6 +81,7 @@ public class NpcPlayer extends ServerPlayerEntity {
     @Override
     protected void updatePostDeath() {
         if (deathTime < 20) deathTime++;
+        if (respawnTimer < 0) respawnTimer = 60; // died without onDeath (e.g. restored dead from disk)
         if (respawnTimer > 0 && --respawnTimer == 0) {
             respawn();
         }

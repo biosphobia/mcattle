@@ -52,8 +52,10 @@ public final class ItemResolver {
         if (s.isEmpty()) return null;
         if (s.equals("*") || s.equals("everything") || s.equals("all") || s.equals("anything")) return ItemQuery.ANY;
         if (s.startsWith("#")) {
-            String id = s.substring(1);
-            return ItemQuery.tag(Tags.item(id), id.replace("minecraft:", "").replace('_', ' '), preferredForTag(id));
+            String id = s.substring(1).replace(' ', '_');
+            Identifier tagId = Identifier.tryParse(id.contains(":") ? id : "minecraft:" + id);
+            if (tagId == null) return null;
+            return ItemQuery.tag(Tags.item(tagId.toString()), tagId.getPath().replace('_', ' '), preferredForTag(id));
         }
         Identifier id = Identifier.tryParse(s.contains(":") ? s : "minecraft:" + s.replace(' ', '_'));
         if (id != null && Registries.ITEM.containsId(id)) return ItemQuery.of(Registries.ITEM.get(id));
