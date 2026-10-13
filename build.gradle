@@ -1,0 +1,86 @@
+plugins {
+    id 'fabric-loom' version '1.5.4'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "mcattle" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+configurations {
+    // Plain Java libraries (the Anthropic SDK and its transitive deps) that get nested into the mod jar.
+    bundled
+    implementation.extendsFrom bundled
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    bundled "com.anthropic:anthropic-java:${project.anthropic_java_version}"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+// Loom's `include` is not transitive, so nest every resolved artifact of the `bundled` configuration.
+// Libraries Minecraft already ships (gson, guava, slf4j, ...) are skipped.
+afterEvaluate {
+    def provided = ['com.google.code.gson', 'com.google.guava', 'org.slf4j', 'com.google.errorprone',
+                    'com.google.j2objc', 'org.checkerframework', 'com.google.code.findbugs']
+    configurations.bundled.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+        def id = artifact.moduleVersion.id
+        if (!provided.contains(id.group)) {
+            dependencies.add('include', "${id.group}:${id.name}:${id.version}")
+        }
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+    it.options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}

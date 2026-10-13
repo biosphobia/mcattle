@@ -1,0 +1,129 @@
+package dev.mcattle.client;
+
+import dev.mcattle.net.NetIds;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.text.Text;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.Arrays;
+
+/**
+ * Optional client half: hold the push-to-talk key (default B) to talk to NPCs. While held a microphone badge
+ * shows on screen and nearby NPCs stop to listen; on release the audio goes to the server for transcription.
+ * Only active on servers that run MCattle.
+ */
+public final class MCattleClient implements ClientModInitializer {
+    private static KeyBinding pushToTalk;
+    private final MicRecorder mic = new MicRecorder();
+    private String status = "";
+    private long statusUntil;
+    private long recordingSince;
+
+    @Override
+    public void onInitializeClient() {
+        pushToTalk = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mcattle.push_to_talk", InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_B, "category.mcattle"));
+        ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        HudRenderCallback.EVENT.register(this::renderHud);
+        ClientPlayNetworking.registerGlobalReceiver(NetIds.VOICE_STATUS, (client, handler, buf, sender) -> {
+            String text = buf.readString(256);
+            client.execute(() -> setStatus(text, 4000));
+        });
+    }
+
+    private boolean serverSupportsVoice() {
+        return ClientPlayNetworking.canSend(NetIds.PTT_START);
+    }
+
+    private void tick(MinecraftClient client) {
+        if (client.player == null || client.getNetworkHandler() == null) {
+            if (mic.isRecording()) mic.stop();
+            return;
+        }
+        boolean held = pushToTalk.isPressed() && client.currentScreen == null;
+        if (held && !mic.isRecording()) {
+            if (!serverSupportsVoice()) {
+                if (pushToTalk.wasPressed()) setStatus("this server doesn't run MCattle", 3000);
+                return;
+            }
+            try {
+                mic.start();
+                recordingSince = System.currentTimeMillis();
+                ClientPlayNetworking.send(NetIds.PTT_START, PacketByteBufs.create());
+            } catch (Exception e) {
+                setStatus("microphone unavailable: " + e.getMessage(), 5000);
+            }
+        } else if (!held && mic.isRecording()) {
+            byte[] pcm = mic.stop();
+            if (System.currentTimeMillis() - recordingSince < 250 || pcm.length == 0) {
+                ClientPlayNetworking.send(NetIds.PTT_CANCEL, PacketByteBufs.create());
+                return;
+            }
+            sendAudio(pcm);
+            setStatus("sending...", 3000);
+        }
+        while (pushToTalk.wasPressed()) {
+            // consume clicks so they don't queue up
+        }
+    }
+
+    private void sendAudio(byte[] pcm) {
+        int chunks = (pcm.length + NetIds.MAX_CHUNK - 1) / NetIds.MAX_CHUNK;
+        for (int i = 0; i < chunks; i++) {
+            byte[] part = Arrays.copyOfRange(pcm, i * NetIds.MAX_CHUNK, Math.min(pcm.length, (i + 1) * NetIds.MAX_CHUNK));
+            PacketByteBuf buf = PacketByteBufs.create();
+            buf.writeVarInt(i);
+            buf.writeBoolean(i == chunks - 1);
+            buf.writeByteArray(part);
+            ClientPlayNetworking.send(NetIds.PTT_AUDIO, buf);
+        }
+    }
+
+    private void setStatus(String text, long millis) {
+        status = text;
+        statusUntil = System.currentTimeMillis() + millis;
+    }
+
+    private void renderHud(DrawContext ctx, float tickDelta) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.options.hudHidden) return;
+        int w = ctx.getScaledWindowWidth();
+        int h = ctx.getScaledWindowHeight();
+        int x = w / 2 - 60;
+        int y = h - 82;
+        if (mic.isRecording()) {
+            ctx.fill(x, y, x + 120, y + 22, 0xAA000000);
+            drawMic(ctx, x + 6, y + 3);
+            ctx.drawTextWithShadow(client.textRenderer, Text.translatable("mcattle.hud.listening"), x + 22, y + 3, 0xFFFFFFFF);
+            int bar = (int) Math.min(90, mic.level() * 600);
+            ctx.fill(x + 22, y + 14, x + 22 + 90, y + 17, 0xFF333333);
+            ctx.fill(x + 22, y + 14, x + 22 + bar, y + 17, 0xFF55FF55);
+        } else if (!status.isEmpty() && System.currentTimeMillis() < statusUntil) {
+            int tw = client.textRenderer.getWidth(status);
+            ctx.fill(w / 2 - tw / 2 - 4, y + 6, w / 2 + tw / 2 + 4, y + 18, 0x88000000);
+            ctx.drawCenteredTextWithShadow(client.textRenderer, status, w / 2, y + 8, 0xFFDDDDDD);
+        }
+    }
+
+    /** A little red microphone drawn with rectangles (no texture needed). */
+    private static void drawMic(DrawContext ctx, int x, int y) {
+        int red = 0xFFE03030, dark = 0xFF7A1010, grey = 0xFFBBBBBB;
+        ctx.fill(x + 3, y, x + 9, y + 9, red);          // capsule
+        ctx.fill(x + 4, y + 1, x + 5, y + 8, dark);     // highlight stripe
+        ctx.fill(x + 1, y + 6, x + 2, y + 11, grey);    // cradle left
+        ctx.fill(x + 10, y + 6, x + 11, y + 11, grey);  // cradle right
+        ctx.fill(x + 1, y + 11, x + 11, y + 12, grey);  // cradle bottom
+        ctx.fill(x + 5, y + 12, x + 7, y + 15, grey);   // stand
+        ctx.fill(x + 2, y + 15, x + 10, y + 16, grey);  // base
+    }
+}

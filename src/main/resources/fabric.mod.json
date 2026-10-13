@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "mcattle",
+  "version": "${version}",
+  "name": "MCattle - AI Companions",
+  "description": "AI-powered player NPCs that play survival on their own, team up, and follow voice or chat commands (Claude API or a local model).",
+  "authors": ["MCattle contributors"],
+  "license": "MIT",
+  "icon": "assets/mcattle/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.mcattle.MCattle"],
+    "client": ["dev.mcattle.client.MCattleClient"]
+  },
+  "mixins": ["mcattle.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}
