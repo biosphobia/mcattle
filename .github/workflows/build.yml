@@ -20,8 +20,9 @@ jobs:
       - name: Upload jar
         uses: actions/upload-artifact@v4
         with:
-          name: mcattle
-          path: build/libs/*.jar
+          # the zip GitHub hands out contains exactly one file: the mod jar to put in mods/
+          name: mcattle-mod-jar
+          path: build/libs/mcattle-*.jar
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
