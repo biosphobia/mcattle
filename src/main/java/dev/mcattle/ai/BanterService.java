@@ -23,6 +23,11 @@ public final class BanterService {
         this.mod = mod;
     }
 
+    /** Called when a server (or singleplayer world) starts: tick counters restart at 0. */
+    public void reset() {
+        nextBanterTick = 20L * 120;
+    }
+
     public void tick() {
         var cfg = mod.config().llm;
         long now = mod.server().getTicks();

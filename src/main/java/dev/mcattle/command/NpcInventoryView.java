@@ -41,6 +41,7 @@ public final class NpcInventoryView implements Inventory {
     @Override
     public void setStack(int slot, ItemStack stack) {
         if (slot < inv.size()) inv.setStack(slot, stack);
+        else if (!stack.isEmpty()) inv.offerOrDrop(stack); // the 4 padding slots hand items straight to the NPC
     }
 
     @Override

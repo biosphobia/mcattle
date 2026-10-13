@@ -23,6 +23,7 @@ import java.util.UUID;
 public final class VoiceService {
     private final MCattle mod;
     private final Map<UUID, ByteArrayOutputStream> buffers = new HashMap<>();
+    private final Map<UUID, Long> lastClientText = new HashMap<>();
 
     public VoiceService(MCattle mod) {
         this.mod = mod;
@@ -42,9 +43,17 @@ public final class VoiceService {
         ServerPlayNetworking.registerGlobalReceiver(NetIds.VOICE_TEXT, (server, player, handler, buf, sender) -> {
             String text = buf.readString(512);
             server.execute(() -> {
+                if (!mod.config().speech.enabled || mod.npcs() == null) return;
+                long now = server.getTicks();
+                if (now - lastClientText.getOrDefault(player.getUuid(), -1000L) < 40) return; // 2 s rate limit
+                lastClientText.put(player.getUuid(), now);
                 stopListening(player);
                 heard(player, text);
             });
+        });
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            buffers.remove(handler.player.getUuid());
+            lastClientText.remove(handler.player.getUuid());
         });
     }
 
@@ -74,6 +83,7 @@ public final class VoiceService {
         if (buffer.size() + data.length <= max) buffer.write(data, 0, data.length);
         if (!last) return;
         buffers.remove(player.getUuid());
+        if (mod.npcs() == null) return;
         byte[] pcm = buffer.toByteArray();
         if (pcm.length < Wav.SAMPLE_RATE / 2) { // under 0.25 s: nothing said
             stopListening(player);
@@ -104,7 +114,9 @@ public final class VoiceService {
         status(player, "");
         Text line = Text.literal("<" + player.getName().getString() + "> ").append(Text.literal(text.trim()))
                 .append(Text.literal(" [voice]").formatted(Formatting.DARK_GRAY));
-        mod.server().getPlayerManager().broadcast(line, false);
+        for (ServerPlayerEntity p : mod.server().getPlayerManager().getPlayerList()) {
+            if (p == player || p.getWorld() == player.getWorld() && p.distanceTo(player) <= mod.config().npc.voiceRange) p.sendMessage(line, false);
+        }
         mod.router().onVoice(player, text.trim());
     }
 

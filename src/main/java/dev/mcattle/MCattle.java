@@ -49,6 +49,7 @@ public final class MCattle implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTED.register(s -> {
             server = s;
+            banter.reset();
             llm = createLlm();
             npcs = new NpcManager(s, this);
             npcs.loadAndRespawn();

@@ -1,9 +1,9 @@
 .gradle/
-build/
-out/
-run/
+/build/
+/out/
+/run/
 *.iml
 .idea/
 .vscode/
-bin/
+/bin/
 remappedSrc/

@@ -46,6 +46,7 @@ public final class TaskFactory {
         List<String> problems = new ArrayList<>();
         Control control = Control.NONE;
         for (Step step : steps) {
+            if (step == null) continue;
             String action = step.action().toLowerCase(Locale.ROOT).trim();
             if (action.equals(Skills.STOP)) {
                 control = Control.STOP;
@@ -60,6 +61,9 @@ public final class TaskFactory {
                 if (t != null) tasks.add(t);
             } catch (Problem p) {
                 problems.add(p.getMessage());
+            } catch (RuntimeException e) {
+                dev.mcattle.MCattle.LOGGER.warn("Bad step {} for {}", step, npc.name(), e);
+                problems.add("got confused, sorry");
             }
         }
         return new Built(tasks, control, problems);
@@ -158,8 +162,14 @@ public final class TaskFactory {
             }
             case Skills.PLACE -> {
                 ItemQuery q = item(step.item());
-                BlockPos pos = step.target().isBlank() || step.target().equalsIgnoreCase("speaker")
-                        ? inFrontOf(npc, speaker, 2) : BlockPos.ofFloored(target(npc, step.target(), speaker).position(npc));
+                BlockPos pos;
+                if (step.target().isBlank() || step.target().equalsIgnoreCase("speaker")) {
+                    pos = inFrontOf(npc, speaker, 2);
+                } else {
+                    Vec3d p = target(npc, step.target(), speaker).position(npc);
+                    if (p == null) throw new Problem("where's that?");
+                    pos = BlockPos.ofFloored(p);
+                }
                 return new PlaceTask(pos, q);
             }
             case Skills.DIG -> {
