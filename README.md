@@ -4,10 +4,9 @@ A Fabric mod that adds AI-powered, player-like NPCs to a multiplayer server. NPC
 have skins, show up in the tab list, and carry their own inventory, armor and health. They play survival on
 their own, chat, greet people, and take orders by **text chat** or **push-to-talk voice**.
 
-> **Status:** written without access to the Minecraft jars, because the build sandbox couldn't reach Mojang or
-> Fabric's maven. The Minecraft-independent core is unit-tested (17 tests). The Minecraft-facing code was
-> checked by hand against the Yarn 1.20.1 mappings and the Fabric API sources, but it has **never been
-> compiled or run inside the game**. Expect to fix a few compile errors on the first `./gradlew build`.
+> **Status:** the mod builds (GitHub Actions compiles it against Minecraft 1.20.1 with Fabric Loom and runs
+> 17 unit tests; the jar is attached to each run as the `mcattle` artifact). It has **not been played in-game
+> yet**, so expect gameplay bugs in pathfinding, building and combat edge cases. Please report what you see.
 
 ## What the NPCs do
 
