@@ -5,7 +5,7 @@ have skins, show up in the tab list, and carry their own inventory, armor and he
 their own, chat, greet people, and take orders by **text chat** or **push-to-talk voice**.
 
 > **Status:** the mod builds (GitHub Actions compiles it against Minecraft 1.20.1 with Fabric Loom and runs
-> 26 unit tests; the jar is attached to each run as the `mcattle` artifact). It has **not been played in-game
+> 24 unit tests; the jar is attached to each run as the `mcattle` artifact). It has **not been played in-game
 > yet**, so expect gameplay bugs in pathfinding, building and combat edge cases. Please report what you see.
 
 ## What the NPCs do
