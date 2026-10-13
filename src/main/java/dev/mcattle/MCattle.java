@@ -40,6 +40,7 @@ public final class MCattle implements ModInitializer {
     private final CommandRouter router = new CommandRouter(this);
     private final BanterService banter = new BanterService(this);
     private final VoiceService voice = new VoiceService(this);
+    private final dev.mcattle.ai.ActivityManager activities = new dev.mcattle.ai.ActivityManager(this);
 
     @Override
     public void onInitialize() {
@@ -56,6 +57,7 @@ public final class MCattle implements ModInitializer {
             LOGGER.info("MCattle ready: {}", llm == null ? "no language model (built-in commands only)" : llm.usageReport());
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> {
+            activities.clear();
             if (npcs != null) npcs.shutdown();
             if (llm != null) llm.close();
             npcs = null;
@@ -64,6 +66,7 @@ public final class MCattle implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(s -> {
             if (npcs == null) return;
             npcs.tick();
+            activities.tick();
             banter.tick();
         });
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
@@ -86,7 +89,7 @@ public final class MCattle implements ModInitializer {
                 if (key.isEmpty()) {
                     LOGGER.warn("MCattle: no Anthropic API key (set llm.anthropicApiKey in config/mcattle.json or ANTHROPIC_API_KEY). NPCs will only understand simple commands.");
                 } else {
-                    provider = new AnthropicProvider(key, c.anthropicModel, c.anthropicBanterModel, c.effort, c.requestTimeoutSeconds);
+                    provider = new AnthropicProvider(key, c.anthropicModel, c.anthropicBanterModel, c.effort, c.designEffort, c.requestTimeoutSeconds);
                 }
             } else if (kind.equals("openai") || kind.equals("local") || kind.equals("ollama")) {
                 provider = new OpenAiCompatibleProvider(c.openaiBaseUrl, c.openaiApiKey, c.openaiModel, c.requestTimeoutSeconds);
@@ -119,6 +122,10 @@ public final class MCattle implements ModInitializer {
 
     public MinecraftServer server() {
         return server;
+    }
+
+    public dev.mcattle.ai.ActivityManager activities() {
+        return activities;
     }
 
     public CommandRouter router() {

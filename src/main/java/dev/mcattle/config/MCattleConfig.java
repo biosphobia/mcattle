@@ -32,6 +32,13 @@ public final class MCattleConfig {
         public String anthropicBanterModel = "claude-opus-5-5";
         /** Reasoning effort for command interpretation: low / medium / high. */
         public String effort = "low";
+        /** Reasoning effort for free-form build designs (bigger, more creative calls). */
+        public String designEffort = "medium";
+        /** Largest design accepted, in blocks. */
+        public int maxDesignBlocks = 2500;
+        /** An activity (game, party...) ends after this many director rounds or minutes. */
+        public int activityMaxRounds = 40;
+        public int activityMaxMinutes = 30;
 
         public String openaiBaseUrl = "http://127.0.0.1:11434/v1";
         public String openaiApiKey = "";
@@ -47,7 +54,7 @@ public final class MCattleConfig {
         public boolean banter = true;
         /** Minimum seconds between banter calls (server-wide). */
         public int banterIntervalSeconds = 420;
-        public int requestTimeoutSeconds = 45;
+        public int requestTimeoutSeconds = 120;
     }
 
     public static final class Speech {

@@ -20,4 +20,15 @@ class AnthropicRequestTest {
         assertTrue(output.format().isPresent(), "json schema format present");
         assertTrue(params.rawParams().system().orElseThrow().isTextBlockParams(), "system prompt as cacheable blocks");
     }
+
+    @Test
+    void designAndActivitySchemasAreAccepted() {
+        var design = AnthropicProvider.request("claude-opus-5-5", SystemPrompt.DESIGNER, "ctx", 16000L, "medium")
+                .outputConfig(Design.class).build();
+        assertTrue(design.rawParams().outputConfig().orElseThrow().format().isPresent());
+        var turn = AnthropicProvider.request("claude-opus-5-5", SystemPrompt.DIRECTOR, "ctx", 4096L, "low")
+                .outputConfig(ActivityTurn.class).build();
+        assertTrue(turn.rawParams().outputConfig().orElseThrow().format().isPresent());
+        assertTrue(SystemPrompt.DIRECTOR.contains("- place:"));
+    }
 }

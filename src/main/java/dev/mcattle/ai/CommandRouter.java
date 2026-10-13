@@ -92,6 +92,15 @@ public final class CommandRouter {
                 return;
             }
         }
+        // an activity in progress (a game, a party...) hears everything said to its participants,
+        // except plain "stop" style orders which end it the normal way
+        boolean stopOrder = parsed.understood() && !parsed.complex()
+                && parsed.steps().stream().anyMatch(s -> s.action().equals(dev.mcattle.core.llm.Skills.STOP) || s.action().equals(dev.mcattle.core.llm.Skills.AUTONOMOUS));
+        ActivitySession activity = mod.activities().sessionFor(speaker, addressed);
+        if (activity != null && !stopOrder && forced == null) {
+            mod.activities().chat(activity, speaker, text);
+            return;
+        }
         if (targets.isEmpty()) return;
         for (NpcBrain b : targets) b.remember(speaker.getName().getString() + ": " + text);
 

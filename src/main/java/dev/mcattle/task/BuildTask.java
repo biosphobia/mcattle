@@ -27,7 +27,8 @@ public final class BuildTask extends Task {
     private int cellTicks;
     private boolean navigating;
     private boolean steppingAway;
-    private final Set<String> unobtainable = new HashSet<>();
+    private boolean announcedWait;
+    private boolean announcedStart;
     private boolean cleaningUp;
     private int waitTicks;
 
@@ -47,12 +48,26 @@ public final class BuildTask extends Task {
             Status s = tickChild(npc);
             if (s == Status.RUNNING) return Status.RUNNING;
             if (s == Status.FAILURE && cell != null && cell.kind == BuildJob.Kind.PLACE) {
-                // couldn't get the material
-                unobtainable.add(cell.block.toString());
-                if (!cell.optional) npc.say("can't get " + TaskUtil.pretty(cell.block.asItem()) + ", skipping those");
-                job.skip(cell);
+                // couldn't get the material: build the rest without it
+                npc.say("can't get " + TaskUtil.pretty(cell.itemType()) + ", leaving those out");
+                job.skipAll(cell.itemType());
                 cell = null;
             }
+        }
+        if (job.isFailed()) return fail("couldn't come up with a design for that");
+        if (!job.isReady()) {
+            // the design is still being drawn up: hang around the site
+            if (!announcedWait) {
+                announcedWait = true;
+                npc.say(npc.random().nextBoolean() ? "hmm let me plan this out..." : "ok, designing it real quick");
+            }
+            npc.move().lookAt(net.minecraft.util.math.Vec3d.ofCenter(job.anchor()));
+            if (++waitTicks > 20 * 150) return fail("took too long to plan the " + job.name());
+            return Status.RUNNING;
+        }
+        if (!announcedStart && !job.summary().isBlank()) {
+            announcedStart = true;
+            npc.say(job.summary());
         }
         if (job.isDone()) return cleanup(npc);
 
@@ -103,16 +118,8 @@ public final class BuildTask extends Task {
         // 2. materials
         ItemQuery item = cell.item();
         if (!npc.npc().isCreative() && npc.inventory().count(item) == 0) {
-            boolean noCoal = cell.block.asItem() == Items.TORCH
-                    && npc.inventory().count(s -> s.isOf(Items.COAL) || s.isOf(Items.CHARCOAL)) == 0;
-            if (cell.optional && (cell.block.asItem() == Items.GLASS || noCoal || unobtainable.contains(cell.block.toString()))) {
-                // windows stay open and torches are skipped rather than a long detour for glass or coal
-                job.skip(cell);
-                cell = null;
-                return Status.RUNNING;
-            }
-            int batch = Math.min(64, job.remainingNeed(cell.block));
-            npc.say(npc.random().nextInt(3) == 0 ? "brb, need more " + TaskUtil.pretty(cell.block.asItem()) : "");
+            int batch = Math.min(64, job.remainingNeed(cell.itemType()));
+            npc.say(npc.random().nextInt(3) == 0 ? "brb, need more " + TaskUtil.pretty(cell.itemType()) : "");
             setChild(new ObtainTask(item, Math.max(1, batch)), npc);
             return Status.RUNNING;
         }
@@ -136,10 +143,15 @@ public final class BuildTask extends Task {
             return Status.RUNNING;
         }
         if (npc.npc().isCreative() && npc.inventory().count(item) == 0) {
-            npc.inventory().giveCreative(new net.minecraft.item.ItemStack(cell.block.asItem(), 64));
+            npc.inventory().giveCreative(new net.minecraft.item.ItemStack(cell.itemType(), 64));
         }
         InteractionControl.Result r = npc.hands().placeBlock(cell.pos, item, assisted && cellTicks > 60);
         if (r == InteractionControl.Result.DONE) {
+            // players can't always pick the exact orientation by where they stand; set it like a debug stick would
+            BlockState placed = world.getBlockState(cell.pos);
+            if (cell.target != null && placed.isOf(cell.target.getBlock()) && placed != cell.target && cell.target.canPlaceAt(world, cell.pos)) {
+                world.setBlockState(cell.pos, cell.target, net.minecraft.block.Block.NOTIFY_ALL);
+            }
             job.finish(cell, true);
             cell = null;
         } else if (cellTicks % 40 == 39) {
@@ -197,7 +209,10 @@ public final class BuildTask extends Task {
 
     @Override
     public String describe() {
-        return "building a " + job.name() + " (" + (job.total() - job.remaining()) + "/" + job.total() + ")";
+        if (!job.isReady()) return "designing " + job.name();
+        String need = job.materials(3);
+        return "building " + job.name() + " (" + (job.total() - job.remaining()) + "/" + job.total() + " blocks"
+                + (need.isEmpty() ? "" : ", still needs " + need) + ")";
     }
 
     @Override

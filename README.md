@@ -22,9 +22,18 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
 - **Fight properly when asked.** Sprint in, circle-strafe, time hits to the attack cooldown, jump-crit, W-tap,
   raise a shield when you wind up a full swing, zig-zag toward archers, use a bow at range, and back off to eat
   when low. `attack me` is a non-lethal spar by default ("gg, i'll let you live"). `kill me` means it.
-- **Build.** House, hut, cabin, tower, wall, bridge, pyramid, platform, pillar, fort, igloo and a giant
-  statue, in the material you ask for. In survival they gather the materials as they go, pillar up to reach
-  high blocks, and clean up their scaffolding afterwards. Several NPCs share one build job and split the work.
+- **Build anything.** "Build a mushroom cottage with a porch", "a giant pixel-art creeper", "a 3x3 tic tac toe
+  board": Claude designs the build for that exact site, using shapes (walls, roofs, domes, cylinders), exact
+  block states (stairs facing, slabs, logs) and pixel-art layers. The NPCs then build it block by block. In
+  survival they gather or craft the materials as they go, pillar up to reach high blocks and clean up their
+  scaffolding afterwards. Several NPCs share one build and split the work. Without a language model they fall
+  back to built-in blueprints.
+- **Open-ended activities.** "Let's party", "this block is X, the stone is O, let's play tic tac toe", "hide and
+  seek", "put on a fashion show", "race me to the top of that mountain". Anything playful, interactive or
+  multi-round becomes an *activity*: a Claude "director" runs it round by round. It keeps notes (rules, board,
+  score), watches an area for block changes (your moves), listens to chat, and gives each NPC its next steps:
+  place a block, play a note block, set off fireworks, dance, hand out cake, commentate. It then waits for you
+  before the next round. Activities end when they're done, when you say stop, or after a time or round limit.
 - **Know Minecraft.** "Give me 5 wood blocks" means logs. If the NPC has 5, it walks over and tosses them to
   you; if not, it chops a tree first. `obtain` works out the whole chain: iron pickaxe means logs, planks,
   sticks, a crafting table, a wooden pickaxe, cobblestone, a stone pickaxe, finding iron (or digging down to
@@ -40,7 +49,7 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
 | Built-in parser | free, instant | "stop", "follow me", "come here", "give me 5 wood", "attack me", "build a stone house", "mine 10 iron", "craft a diamond pickaxe", emotes... |
 | Skill engine | free | Pathfinding, mining, crafting trees, combat, building: all the spatial work |
 | Autonomous planner | free | Free play when nobody gives orders |
-| Claude API | paid | Messages with several steps, questions, banter, anything nuanced |
+| Claude API | paid | Messages with several steps, questions, banter, anything nuanced; one design call per build; one call per activity round |
 
 - A Claude call sends only a compact situation report: who spoke, time of day, and for each addressed NPC its
   inventory, current task, what's nearby (trees, exposed ores, water, crafting tables, mobs), its persona and
@@ -78,6 +87,9 @@ Created on first start. The most important fields:
     "anthropicApiKey": "",              // or set the ANTHROPIC_API_KEY environment variable
     "anthropicModel": "claude-opus-5-5",
     "effort": "low",
+    "designEffort": "medium",           // build designs get more thought
+    "maxDesignBlocks": 2500,
+    "activityMaxRounds": 40, "activityMaxMinutes": 30,
     "maxRequestsPerMinute": 12,
     "maxTokensPerDay": 400000,
     "localParserFirst": true,           // simple orders never reach the API
@@ -131,6 +143,7 @@ Examples:
 - `get me a diamond pickaxe` · `smelt this iron` · `put everything in the chest`
 - `Jack and Maya, race to get 10 diamonds, winner gets a cookie` (goes to Claude)
 - `what are you doing?` · `tell me a joke` (goes to Claude)
+- `guys let's party` · (looking at a block) `this block is x, stone is o, let's play tic tac toe` (activities)
 
 ## Commands
 
@@ -177,4 +190,5 @@ Key packages: `dev.mcattle.core` (Minecraft-independent: parser, LLM clients, bl
   textures. The server needs internet access the first time each skin is fetched.
 - NPCs don't use portals by themselves. If they're left far behind or in another dimension while following
   you, they catch up by teleporting.
-- Builds are procedural blueprints (12 structures with options), not free-form designs.
+- Free-form designs depend on the model's spatial skill. Ambitious requests can come out quirky, which fits
+  the spirit of the mod. Exact block orientations are applied after placement, the way a debug stick would.

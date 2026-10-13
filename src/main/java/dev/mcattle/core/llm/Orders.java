@@ -32,16 +32,24 @@ public record Orders(
             String item,
             @JsonPropertyDescription("Amount, 0 if unused")
             int count,
-            @JsonPropertyDescription("Extra key=value options separated by spaces, e.g. 'structure=house material=oak_planks size=7' or 'lethal=false'; empty if unused")
-            String options) {
+            @JsonPropertyDescription("Extra key=value options separated by spaces, e.g. 'lethal=false' or 'type=dance'; empty if unused")
+            String options,
+            @JsonPropertyDescription("Free text: what to build (build), the goal of an activity (activity), or the words to say (say); empty if unused")
+            String text) {
 
         public static Step of(String action) {
-            return new Step(action, "", "", 0, "");
+            return new Step(action, "", "", 0, "", "");
         }
 
         public static Step of(String action, String target, String item, int count, String options) {
-            return new Step(action, nz(target), nz(item), count, nz(options));
+            return new Step(action, nz(target), nz(item), count, nz(options), "");
         }
+
+        public static Step of(String action, String target, String item, int count, String options, String text) {
+            return new Step(action, nz(target), nz(item), count, nz(options), nz(text));
+        }
+
+        public String text() { return nz(text); }
 
         public String target() { return nz(target); }
         public String item() { return nz(item); }

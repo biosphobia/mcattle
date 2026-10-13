@@ -39,6 +39,9 @@ public final class Skills {
     public static final String HELP = "help";
     public static final String REPORT = "report";
     public static final String LOOK = "look";
+    public static final String ACTIVITY = "activity";
+    public static final String USE = "use";
+    public static final String BREAK = "break";
 
     /** name -> one-line documentation (fields: target, item, count, options). */
     public static final Map<String, String> CATALOG = new LinkedHashMap<>();
@@ -59,8 +62,11 @@ public final class Skills {
         CATALOG.put(ATTACK, "fight target (player/NPC name or mob type like 'zombie') with real PvP technique; options lethal=true|false (false = stop when target is low), duration=seconds");
         CATALOG.put(GUARD, "stay near target and kill hostile mobs or attackers that come close");
         CATALOG.put(HUNT, "kill count mobs of type item (e.g. 'cow') and pick up the drops");
-        CATALOG.put(BUILD, "build a structure at target (default: near speaker); options structure=house|hut|cabin|tower|wall|bridge|pyramid|platform|pillar|fort|igloo|statue material=<block id> size=N height=N; gathers materials in survival");
-        CATALOG.put(PLACE, "place one item block at target 'x y z' (default: next to speaker)");
+        CATALOG.put(BUILD, "design and build anything described in text (free-form: 'a cozy spruce cabin with a porch', 'a giant pixel-art creeper', 'a 3x3 tic tac toe board of white wool'); target = where (default: in front of speaker, or 'x y z' corner); options size=small|medium|large; gathers materials in survival; other NPCs join with help");
+        CATALOG.put(PLACE, "place one block item at exact target 'x y z' (default: in front of speaker)");
+        CATALOG.put(BREAK, "break the block at exact target 'x y z'");
+        CATALOG.put(USE, "right-click: hold item (optional) and use it on the block at target 'x y z' (buttons, levers, note blocks, doors, cake, jukebox...) or in the air if no target (fireworks, eat, throw)");
+        CATALOG.put(ACTIVITY, "start an open-ended, multi-round activity that you will keep directing (games like tic tac toe, hide and seek, races, parties, shows, roleplay, contests, anything that needs reacting to players over time); text = the goal and rules as you understand them; target = participant NPC names comma separated or 'all'. Give this step to ONE NPC only");
         CATALOG.put(DIG, "dig at target; options shape=hole|tunnel|stairs|room depth=N width=N");
         CATALOG.put(EXPLORE, "wander and look around; options distance=N");
         CATALOG.put(COLLECT, "pick up dropped items nearby");

@@ -153,6 +153,11 @@ public final class NpcBrain {
         return reflex != null ? reflex : current;
     }
 
+    /** True if the task is the current order or still queued (reflexes like eating don't count as replacing it). */
+    public boolean hasTask(Task task) {
+        return current == task || orders.contains(task);
+    }
+
     public List<Task> queuedTasks() {
         return new ArrayList<>(orders);
     }

@@ -40,6 +40,8 @@ public final class SystemPrompt {
                   race, contest or fight. Look at what every NPC is currently doing and avoid duplicate effort.
                 - "me" / "I" means the speaker. Use exact player and NPC names from the report.
                 - Plain conversation (questions, jokes, greetings) needs only "say" text and mode "none".
+                - Anything playful, interactive, open-ended or that needs several rounds of reacting to the players                   ("let's party", "let's play tic tac toe", "hide and seek", "put on a show", "race me to the top")                   is an activity: one NPC gets an activity step with the goal in text and participants in target;                   you will then direct it round by round. Don't try to finish such things in a single plan.
+                - "this", "here", "that block" usually mean what the speaker is looking at (given in the report).
                 - Unclear or impossible requests: say so briefly in character and do the closest sensible thing.
                 - Never refuse harmless game requests; fighting the player is fine when they ask for it (use \
                   lethal=false unless they clearly want a fight to the death).
@@ -60,18 +62,54 @@ public final class SystemPrompt {
         }
         sb.append("""
 
-                Field rules: unused string fields are "" and unused count is 0. item accepts ids \
+                Field rules: unused string fields are "" and unused count is 0. Use exact coordinates from the                 report for place/break/use/goto. item accepts ids \
                 (minecraft:cobblestone), tags (#minecraft:logs, #minecraft:planks, #minecraft:wool) or plain words. \
                 options is space separated key=value with no spaces inside values.
 
                 Examples (situation reports shortened):
                 Speaker Steve: "OakJames give me 5 wood blocks" (OakJames has 2 oak_log)
-                {"orders":[{"npc":"OakJames","say":"gotchu, need to chop a few more","mode":"replace","steps":[{"action":"give","target":"Steve","item":"#minecraft:logs","count":5,"options":""}]}]}
+                {"orders":[{"npc":"OakJames","say":"gotchu, need to chop a few more","mode":"replace","steps":[{"action":"give","target":"Steve","item":"#minecraft:logs","count":5,"options":"","text":""}]}]}
                 Speaker Alex: "everyone build me a house" (NPCs: CobbleMaya idle, CreeperJack mining)
-                {"orders":[{"npc":"CobbleMaya","say":"house incoming!","mode":"replace","steps":[{"action":"build","target":"speaker","item":"","count":0,"options":"structure=house material=minecraft:oak_planks size=7"}]},{"npc":"CreeperJack","say":"i'll get you guys wood","mode":"replace","steps":[{"action":"chop","target":"","item":"","count":24,"options":""},{"action":"help","target":"CobbleMaya","item":"","count":0,"options":""}]}]}
+                {"orders":[{"npc":"CobbleMaya","say":"house incoming!","mode":"replace","steps":[{"action":"build","target":"speaker","item":"","count":0,"options":"size=medium","text":"a cozy two-room oak and cobblestone house with a porch, windows and a little chimney"}]},{"npc":"CreeperJack","say":"i'll help","mode":"replace","steps":[{"action":"help","target":"CobbleMaya","item":"","count":0,"options":"","text":""}]}]}
+                Speaker Steve (looking at white_wool at (10,64,5)): "this block is x, the stone is o, let's play tic tac toe"
+                {"orders":[{"npc":"OakJames","say":"ooh i'm SO good at this","mode":"replace","steps":[{"action":"activity","target":"OakJames","item":"","count":0,"options":"","text":"Tic tac toe vs Steve. Steve is X = white_wool, OakJames is O = stone. Find/agree on a 3x3 board near (10,64,5) (build one if needed), take turns placing blocks, announce the winner, offer a rematch."}]}]}
                 Speaker Steve: "attack me"
-                {"orders":[{"npc":"OakJames","say":"oh it's ON","mode":"replace","steps":[{"action":"equip","target":"","item":"#minecraft:swords","count":0,"options":""},{"action":"attack","target":"Steve","item":"","count":0,"options":"lethal=false"}]}]}
+                {"orders":[{"npc":"OakJames","say":"oh it's ON","mode":"replace","steps":[{"action":"attack","target":"Steve","item":"","count":0,"options":"lethal=false","text":""}]}]}
                 """);
+        return sb.toString();
+    }
+
+    public static final String DESIGNER = """
+            You are a skilled Minecraft builder designing a structure for AI companions to build block by block in             survival Minecraft 1.20.1. Output JSON matching the schema: a list of drawing parts in a LOCAL grid where             x goes right, y goes up (y=0 is the ground layer the structure stands on; the ground below y=0 is             filled automatically) and z goes forward, away from the player who asked (the front/entrance should be             at low z, facing them). Later parts paint over earlier ones.
+
+            Shapes: block (x1,y1,z1), fill (box), hollow (box shell incl. floor and ceiling), walls (4 walls, no             floor/ceiling), line (x1..x2 straight or diagonal), cylinder (center x1,y1,z1, radius x2, up to y2;             hollow=true for towers), sphere / dome (center x1,y1,z1, radius x2, hollow=true), pyramid (stepped, base             rectangle x1..x2 / z1..z2 starting at y1), roof (gable over x1..x2/z1..z2 starting at y1, ridge along x,             axis=z for the other way), clear (set air: interiors, doorways, windows), layers (pixel/ASCII art: rows             of characters with a palette option like '#=minecraft:stone_bricks r=minecraft:red_wool'; '.' or space             = untouched, '_' = air; '---' starts the next layer up).
+
+            Make it look good and intentional, like a real player build: depth in walls (log pillars, inset             windows), trims, a proper roof with overhang where sensible, doors as a 2-high doorway (place             minecraft:oak_door[half=lower,facing=north] at the bottom; the top half appears by itself), lighting             (torches/lanterns), interior touches (crafting table, bed, chest, flower pots) when it's a home. Use             block states for orientation: stairs[facing=...,half=...], slabs[type=top|bottom],             logs[axis=x|y|z]. Facing north means toward -z (toward the player).
+
+            Respect the requested size (small ~ up to 7x7, medium ~ up to 13x13, large ~ up to 25x25; at most 32             in any direction, 20 high unless asked) and keep it under about 1500 blocks. In survival, prefer             materials that are easy to get (planks, logs, cobblestone, stone, glass, dirt, sand, wool if sheep are             around) and what the builders already carry; creative builders can use anything. Be creative and match             the vibe of the request (silly requests can be silly). Give it a short name and a one-line summary.""";
+
+    public static final String DIRECTOR = """
+            You direct an ongoing activity for AI companions ("NPCs") on a Minecraft 1.20.1 server. The NPCs are             real players; a skill engine executes your steps with full pathfinding and game mechanics. Each time             you are called you see the goal, your own notes from last round, what happened since (chat, block             changes in the watched area, finished steps) and the current state. Decide the next small chunk of             action for each participant, then say when to call you again.
+
+            Guidelines:
+            - Keep the activity going over many rounds until it's genuinely finished, the players lose interest or               ask to stop. Short steps per round, react to what players do and say.
+            - Keep authoritative state (rules, board, positions, score, whose turn) in notes; rewrite them fully               every round. For board games track the board explicitly with coordinates from the watched area.
+            - Use exact coordinates from the report for place/break/use/goto. Watch the area where the action               happens (a game board, a dance floor, a race finish) with watchArea.
+            - For turn-based games: after the NPC's move, wait for 'blocks' (the player's move) or 'chat'. Play               well but have fun; announce results.
+            - Be creative and fun, in persona: parties get music (jukebox/note blocks), dancing, fireworks, food               handed out; contests get commentary; roleplay stays in character. Chat lines short and casual.
+            - Steps use the same skills as normal orders. When a participant has nothing to do, give it no steps               (it idles, watching the players).
+            - Set done=true when finished (say goodbye/gg). If a player clearly wants to stop, end it.
+            Skills:
+            """ + skillList() + """
+
+            Output JSON matching the schema.""";
+
+    private static String skillList() {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> e : Skills.CATALOG.entrySet()) {
+            if (e.getKey().equals(Skills.ACTIVITY)) continue;
+            sb.append("- ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+        }
         return sb.toString();
     }
 

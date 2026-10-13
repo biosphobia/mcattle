@@ -4,8 +4,6 @@ import dev.mcattle.control.ItemQuery;
 import dev.mcattle.control.ItemResolver;
 import dev.mcattle.control.Knowledge;
 import dev.mcattle.control.Tags;
-import dev.mcattle.core.build.Blueprint;
-import dev.mcattle.core.build.BlueprintLibrary;
 import dev.mcattle.core.llm.Orders.Step;
 import dev.mcattle.core.llm.Skills;
 import dev.mcattle.npc.NpcBrain;
@@ -192,7 +190,7 @@ public final class TaskFactory {
                 return new EmoteTask(step.option("type", step.item().isBlank() ? "greet" : step.item()), t);
             }
             case Skills.SAY -> {
-                String text = !step.target().isBlank() ? step.target() : step.item();
+                String text = !step.text().isBlank() ? step.text() : !step.target().isBlank() ? step.target() : step.item();
                 return text.isBlank() ? null : new SayTask(text);
             }
             case Skills.WAIT -> {
@@ -221,6 +219,39 @@ public final class TaskFactory {
             }
             case Skills.REPORT -> {
                 return new ReportTask();
+            }
+            case Skills.BREAK -> {
+                Vec3d p = target(npc, step.target(), speaker).position(npc);
+                if (p == null) throw new Problem("break what?");
+                return new BreakBlockTask(BlockPos.ofFloored(p));
+            }
+            case Skills.USE -> {
+                BlockPos at = null;
+                if (!step.target().isBlank()) {
+                    Vec3d p = target(npc, step.target(), speaker).position(npc);
+                    if (p != null) at = BlockPos.ofFloored(p);
+                }
+                ItemQuery q = step.item().isBlank() ? null : item(step.item());
+                return new UseTask(q, at);
+            }
+            case Skills.ACTIVITY -> {
+                if (speaker == null) throw new Problem("who am i playing with?");
+                String goal = !step.text().isBlank() ? step.text() : step.options();
+                if (goal.isBlank()) throw new Problem("what are we doing?");
+                List<NpcBrain> participants = new ArrayList<>();
+                participants.add(npc);
+                String who = step.target().trim();
+                if (who.equalsIgnoreCase("all") || who.equalsIgnoreCase("everyone")) {
+                    for (NpcBrain b : npc.manager().all()) {
+                        if (b != npc && b.npc().getWorld() == speaker.getWorld() && b.npc().distanceTo(speaker) < 64) participants.add(b);
+                    }
+                } else {
+                    for (String name : who.split("[,\\s]+")) {
+                        NpcBrain b = npc.manager().byName(name);
+                        if (b != null && !participants.contains(b)) participants.add(b);
+                    }
+                }
+                return npc.manager().mod().activities().start(npc, goal, participants, speaker);
             }
             case Skills.LOOK -> {
                 return new LookTask(target(npc, step.target(), speaker), 60);
@@ -279,14 +310,15 @@ public final class TaskFactory {
     }
 
     private static Task build(NpcBrain npc, Step step, @Nullable ServerPlayerEntity speaker) throws Problem {
-        String structure = step.option("structure", step.item().isBlank() ? "house" : step.item()).toLowerCase(Locale.ROOT);
-        if (!BlueprintLibrary.NAMES.contains(structure) && !List.of("castle", "shelter", "shack", "skyscraper", "fortress", "monument", "floor").contains(structure)) {
-            structure = "house";
-        }
+        String description = !step.text().isBlank() ? step.text()
+                : !step.item().isBlank() ? step.item()
+                : step.option("structure", "house").replace('_', ' ');
         String material = step.option("material", "");
-        Blueprint blueprint = BlueprintLibrary.create(structure, step.intOption("size", 0), step.intOption("height", 0));
+        if (!material.isBlank() && !description.contains(material.replace('_', ' '))) description += " made of " + material.replace('_', ' ');
+        String size = step.option("size", "");
         BlockPos anchor;
         Direction forward;
+        boolean exact = false;
         String where = step.target();
         if (where.isBlank() || where.equalsIgnoreCase("speaker") || where.equalsIgnoreCase("me") || where.equalsIgnoreCase("here")) {
             Entity who = speaker != null ? speaker : npc.npc();
@@ -297,18 +329,11 @@ public final class TaskFactory {
             Vec3d p = t.position(npc);
             if (p == null) throw new Problem("where's that?");
             anchor = BlockPos.ofFloored(p);
-            Vec3d from = npc.pos();
-            forward = Direction.getFacing(p.x - from.x, 0, p.z - from.z);
-            if (t.entity(npc) instanceof PlayerEntity player) forward = player.getHorizontalFacing();
+            exact = !t.isEntity();
+            forward = t.entity(npc) instanceof PlayerEntity player ? player.getHorizontalFacing() : facing(npc, speaker);
         }
-        int gap = isSmall(structure) ? 2 : 3;
-        BuildJob job = BuildJob.create(npc.world(), blueprint, material, anchor, forward, gap);
-        npc.manager().registerJob(job);
+        BuildJob job = BuildFactory.start(npc, description, size, anchor, forward, exact);
         return new BuildTask(job);
-    }
-
-    private static boolean isSmall(String structure) {
-        return structure.equals("pillar") || structure.equals("wall") || structure.equals("bridge");
     }
 
     private static Task dig(NpcBrain npc, Step step, @Nullable ServerPlayerEntity speaker) {

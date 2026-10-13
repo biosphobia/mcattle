@@ -87,7 +87,8 @@ class LocalIntentParserTest {
         assertEquals("build", s.action());
         assertEquals("house", s.option("structure", ""));
         assertEquals("cobblestone", s.option("material", ""));
-        assertEquals(11, s.intOption("size", 0));
+        assertEquals("large", s.option("size", ""));
+        assertTrue(s.text().contains("cobblestone house"), s.text());
         s = first("build a castle out of stone bricks");
         assertEquals("fort", s.option("structure", ""));
         assertEquals("stone_bricks", s.option("material", ""));

@@ -45,6 +45,18 @@ public final class OpenAiCompatibleProvider implements LlmProvider {
         return call(SystemPrompt.BANTER + schema, situation, 300, Banter.class);
     }
 
+    @Override
+    public LlmResult<Design> design(String context) throws Exception {
+        return call(SystemPrompt.DESIGNER + "\nRespond with ONLY JSON like {\"name\":\"...\",\"summary\":\"...\",\"parts\":[{\"shape\":\"fill\",\"block\":\"minecraft:stone\",\"x1\":0,\"y1\":0,\"z1\":0,\"x2\":4,\"y2\":0,\"z2\":4,\"options\":\"\",\"rows\":[]}]}",
+                context, 6000, Design.class);
+    }
+
+    @Override
+    public LlmResult<ActivityTurn> direct(String context) throws Exception {
+        return call(SystemPrompt.DIRECTOR + "\nRespond with ONLY JSON with keys notes, orders, waitFor, waitSeconds, watchArea, done.",
+                context, 2000, ActivityTurn.class);
+    }
+
     private <T> LlmResult<T> call(String system, String user, int maxTokens, Class<T> type) throws Exception {
         JsonObject body = new JsonObject();
         body.addProperty("model", model);

@@ -187,9 +187,10 @@ public final class LocalIntentParser {
             if (mat.find()) material = mat.group(2);
             else if (!adjectives.isEmpty()) material = adjectives.replaceAll("\\b(big|huge|large|small|tiny|little|nice|cool|cozy|tall|giant|massive|simple|quick|beautiful|epic|good|great)\\b", "").trim();
             if (material != null && !material.isBlank()) options.append(" material=").append(material.trim().replace(' ', '_'));
-            if (adjectives.matches(".*\\b(big|huge|large|giant|massive|tall)\\b.*")) options.append(" size=11");
-            if (adjectives.matches(".*\\b(small|tiny|little)\\b.*")) options.append(" size=5");
-            return List.of(Step.of(Skills.BUILD, "speaker", "", 0, options.toString()));
+            if (adjectives.matches(".*\\b(big|huge|large|giant|massive|tall)\\b.*")) options.append(" size=large");
+            if (adjectives.matches(".*\\b(small|tiny|little)\\b.*")) options.append(" size=small");
+            String description = (adjectives + " " + m.group(5) + " " + rest).replaceAll("\\s+", " ").trim();
+            return List.of(Step.of(Skills.BUILD, "speaker", "", 0, options.toString(), "a " + description));
         }
 
         // craft

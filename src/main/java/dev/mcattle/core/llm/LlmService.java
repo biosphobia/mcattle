@@ -93,6 +93,33 @@ public final class LlmService implements AutoCloseable {
         }, executor);
     }
 
+    public CompletableFuture<Optional<Design>> design(String context) {
+        return submit(() -> provider.design(context), "Design");
+    }
+
+    public CompletableFuture<Optional<ActivityTurn>> direct(String context) {
+        return submit(() -> provider.direct(context), "Activity");
+    }
+
+    private interface Call<T> {
+        LlmResult<T> run() throws Exception;
+    }
+
+    private <T> CompletableFuture<Optional<T>> submit(Call<T> call, String what) {
+        if (!reserve()) return CompletableFuture.completedFuture(Optional.empty());
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                LlmResult<T> result = call.run();
+                account(result);
+                if (result.value() == null) log.accept(what + " call returned nothing: " + result.note());
+                return Optional.ofNullable(result.value());
+            } catch (Exception e) {
+                log.accept(what + " call failed: " + e);
+                return Optional.<T>empty();
+            }
+        }, executor);
+    }
+
     public CompletableFuture<Optional<Banter>> banter(String situation) {
         if (!reserve()) return CompletableFuture.completedFuture(Optional.empty());
         return CompletableFuture.supplyAsync(() -> {

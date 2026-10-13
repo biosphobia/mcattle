@@ -30,8 +30,9 @@ public final class AnthropicProvider implements LlmProvider {
     private final String model;
     private final String banterModel;
     private final String effort;
+    private final String designEffort;
 
-    public AnthropicProvider(String apiKey, String model, String banterModel, String effort, int timeoutSeconds) {
+    public AnthropicProvider(String apiKey, String model, String banterModel, String effort, String designEffort, int timeoutSeconds) {
         this.client = AnthropicOkHttpClient.builder()
                 .apiKey(apiKey)
                 .timeout(Duration.ofSeconds(Math.max(10, timeoutSeconds)))
@@ -40,6 +41,18 @@ public final class AnthropicProvider implements LlmProvider {
         this.model = model;
         this.banterModel = banterModel;
         this.effort = effort == null || effort.isBlank() ? "low" : effort.trim().toLowerCase(java.util.Locale.ROOT);
+        this.designEffort = designEffort == null || designEffort.isBlank() ? "medium" : designEffort.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    @Override
+    public LlmResult<Design> design(String context) {
+        // designs are long JSON: give them room (non-streaming stays well under the SDK timeout at this size)
+        return run(request(model, SystemPrompt.DESIGNER, context, 16000L, designEffort).outputConfig(Design.class).build());
+    }
+
+    @Override
+    public LlmResult<ActivityTurn> direct(String context) {
+        return run(request(model, SystemPrompt.DIRECTOR, context, 4096L, effort).outputConfig(ActivityTurn.class).build());
     }
 
     @Override

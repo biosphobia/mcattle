@@ -8,5 +8,11 @@ public interface LlmProvider {
     /** Writes a few banter lines. */
     LlmResult<Banter> banter(String situation) throws Exception;
 
+    /** Designs a free-form structure for the build request in the context. */
+    LlmResult<Design> design(String context) throws Exception;
+
+    /** Decides the next round of an ongoing activity. */
+    LlmResult<ActivityTurn> direct(String context) throws Exception;
+
     String describe();
 }
