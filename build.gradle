@@ -39,6 +39,8 @@ dependencies {
 
     bundled "com.anthropic:anthropic-java:${project.anthropic_java_version}"
 
+    // gson ships with Minecraft at runtime; the plain unit-test classpath needs it explicitly
+    testImplementation "com.google.code.gson:gson:2.10.1"
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.2"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
@@ -71,6 +73,10 @@ tasks.withType(JavaCompile).configureEach {
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
 }
 
 java {

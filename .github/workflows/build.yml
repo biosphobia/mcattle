@@ -22,3 +22,9 @@ jobs:
         with:
           name: mcattle
           path: build/libs/*.jar
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/
