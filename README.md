@@ -85,7 +85,8 @@ llama.cpp, vLLM or any other OpenAI-compatible server. That costs no tokens, but
 
 ## Install
 
-Server (required): Fabric Loader 0.16+, Fabric API for 1.20.1, and `mcattle-<version>.jar` in `mods/`.
+Server (required): Fabric Loader 0.16+ for 1.20.1 and `mcattle-<version>.jar` in `mods/`. That's it: the jar is
+standalone and bundles the parts of Fabric API it needs (having the full Fabric API installed as well is fine).
 Clients can join **without** the mod and still use text commands.
 
 Clients (optional): put the same jar in your `mods/` for push-to-talk. Bind *"Talk to NPCs (push to talk)"*

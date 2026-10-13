@@ -37,6 +37,20 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
+    // Standalone: nest the few Fabric API modules MCattle uses, so the jar works without installing Fabric API.
+    // If the full Fabric API is installed too, Fabric Loader simply uses the newest copy of each module.
+    [
+            "fabric-api-base",
+            "fabric-command-api-v2",
+            "fabric-lifecycle-events-v1",
+            "fabric-message-api-v1",
+            "fabric-networking-api-v1",
+            "fabric-key-binding-api-v1",
+            "fabric-rendering-v1",
+    ].each { name ->
+        include fabricApi.module(name, project.fabric_version)
+    }
+
     bundled "com.anthropic:anthropic-java:${project.anthropic_java_version}"
 
     // gson ships with Minecraft at runtime; the plain unit-test classpath needs it explicitly
