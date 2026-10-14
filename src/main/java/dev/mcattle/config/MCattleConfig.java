@@ -81,13 +81,6 @@ public final class MCattleConfig {
         public int listenRange = 10;
         /** Show what was understood in chat as "<Player> ... [voice]". */
         public boolean showTranscripts = true;
-        /**
-         * Send what NPCs say to nearby players who have MCattle on their client, so it is read aloud there
-         * (voice and engine are chosen in each player's config/mcattle-client.json).
-         */
-        public boolean textToSpeech = true;
-        /** Players further away than this don't hear NPCs speak (text chat is unaffected). */
-        public int textToSpeechRange = 48;
     }
 
     public static final class Npc {

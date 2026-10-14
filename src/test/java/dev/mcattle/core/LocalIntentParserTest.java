@@ -63,8 +63,11 @@ class LocalIntentParserTest {
         List<Step> steps = parse("CreeperJack attack me").steps();
         assertEquals("attack", steps.get(1).action());
         assertEquals("speaker", steps.get(1).target());
-        assertFalse(steps.get(1).boolOption("lethal", true));
+        assertTrue(steps.get(1).boolOption("lethal", false));
         assertTrue(parse("kill me").steps().get(1).boolOption("lethal", false));
+        assertFalse(parse("spar with me").steps().get(1).boolOption("lethal", true));
+        assertEquals("die", parse("OakJames kill yourself").steps().get(0).action());
+        assertEquals("how=lava", parse("go jump in lava").steps().get(0).options());
         Step hunt = first("kill 5 zombies");
         assertEquals("hunt", hunt.action());
         assertEquals("zombie", hunt.item());

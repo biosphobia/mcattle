@@ -166,13 +166,6 @@ public final class CommandRouter {
         boolean first = true;
         for (NpcBrain npc : targets) {
             npc.social().heard(speaker, text);
-            boolean control = parsed.steps().stream().anyMatch(s -> s.action().equals(dev.mcattle.core.llm.Skills.STOP)
-                    || s.action().equals(dev.mcattle.core.llm.Skills.AUTONOMOUS));
-            if (!control && npc.social().refuses(speaker)) {
-                npc.say(Lines.refuse(npc, speaker.getName().getString())); // holds a grudge
-                first = false;
-                continue;
-            }
             String say = first || npc.random().nextInt(3) == 0 ? Lines.ack(npc) : "";
             if (apply(npc, say, "replace", parsed.steps(), speaker)) npc.setGoal(text, speaker);
             first = false;

@@ -17,7 +17,7 @@ import net.minecraft.util.math.Vec3d;
 /**
  * Fights like a decent PvP player: closes distance sprinting, circle-strafes, times hits to the attack cooldown,
  * jump-crits, W-taps for knockback, blocks with a shield when the opponent winds up, uses a bow at range,
- * and backs off to eat when low. Non-lethal fights stop when the opponent is nearly dead.
+ * and backs off to eat when low (not in ordered fights to the death). Spars stop when the opponent is nearly dead.
  */
 public final class AttackTask extends Task {
     private final Target target;
@@ -92,8 +92,8 @@ public final class AttackTask extends Task {
             retreating = false;
         }
 
-        // low health: back off and eat
-        if (self.getHealth() < 7 && npc.inventory().foodCount() + npc.inventory().count(s -> s.isOf(Items.GOLDEN_APPLE)) > 0 && !retreating) {
+        // low health: back off and eat - except in a fight to the death it was ordered into
+        if ((reflex || !lethal) && self.getHealth() < 7 && npc.inventory().foodCount() + npc.inventory().count(s -> s.isOf(Items.GOLDEN_APPLE)) > 0 && !retreating) {
             retreating = true;
         }
         if (retreating) {

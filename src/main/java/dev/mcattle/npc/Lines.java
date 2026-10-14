@@ -104,11 +104,6 @@ public final class Lines {
                 "i haven't forgotten, {player}", "round two, {player}")).replace("{player}", who);
     }
 
-    public static String refuse(NpcBrain npc, String who) {
-        return pick(npc.random(), List.of("nah. not for you {player}", "after what you did? no", "ask someone else",
-                "why would i help YOU", "lol no", "maybe if you apologized first")).replace("{player}", who);
-    }
-
     public static String gift(NpcBrain npc, String who) {
         return pick(npc.random(), List.of("here {player}, for you", "got you something", "take this {player}",
                 "thought you'd like this", "a little gift :)")).replace("{player}", who);

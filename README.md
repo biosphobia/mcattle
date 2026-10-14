@@ -25,7 +25,9 @@ their own, chat, greet people, and take orders by **text chat** or **voice throu
   hi. They fight back if a mob hits them, and (configurable) if you punch them.
 - **Fight properly when asked.** Sprint in, circle-strafe, time hits to the attack cooldown, jump-crit, W-tap,
   raise a shield when you wind up a full swing, zig-zag toward archers, use a bow at range, and back off to eat
-  when low. `attack me` is a non-lethal spar by default ("gg, i'll let you live"). `kill me` means it.
+  when low. Ordered fights go to the death: `attack me`, `kill me`, `OakJames and CobbleMaya kill each
+  other`. Only a `spar` stops early. They obey everything, including `kill yourself` or `go jump in lava`. It's a
+  game, and they respawn at home.
 - **Build anything.** "Build a mushroom cottage with a porch", "a giant pixel-art creeper", "a 3x3 tic tac toe
   board": Claude designs the build for that exact site, using shapes (walls, roofs, domes, cylinders), exact
   block states (stairs facing, slabs, logs) and pixel-art layers. The NPCs then build it block by block. In
@@ -55,8 +57,6 @@ their own, chat, greet people, and take orders by **text chat** or **voice throu
   talk near it over voice chat, `✎ thinking...` while it waits for Claude, and its current step (`⛏ mining iron ore`,
   `⌂ building the cottage`, `⚔ attacking Steve`). It's a vanilla text display, so everyone sees it without the
   client mod. Hidden when idle; `npc.statusIndicator` turns it off.
-- **Talk out loud.** On clients with the mod, NPC chat is read aloud with text-to-speech. Each NPC keeps its
-  own voice, and lines get quieter with distance and pan to the side the NPC is on.
 - **Work as a team.** With no name in the message, every NPC in range takes the order. One language-model call
   plans for all of them at once, with each NPC's current task in view, so they split work, help each other
   (`help CobbleMaya`) or compete when you ask for a race.
@@ -85,8 +85,8 @@ Every NPC has an inner life that persists across restarts:
   Canned lines change too ("{player}?? i thought we were friends", "oh. it's you"). Behavior: warmer and more
   frequent greetings for friends and cold stares for enemies. They seek out friends to hang out with and
   bring them gifts. They keep away from people they fear. A friend gets a pass for the first hit, but someone
-  hated can get jumped when the NPC is angry enough. A sad NPC sulks and an ecstatic one dances. They may
-  refuse orders from someone they resent ("maybe if you apologized first"). Emotion particles show it too:
+  hated can get jumped when the NPC is angry enough. A sad NPC sulks and an ecstatic one dances. They still
+  obey everyone, but grumble at people they resent and are eager for people they love. Emotion particles show it too:
   angry puffs, tears, sparkles, hearts near favourite people.
 - `/npc feelings <npc>` shows the mood, temperament and relationships.
 
@@ -160,8 +160,7 @@ Clients can join **without** the mod and still use text commands.
 Voice (optional): install [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) for 1.20.1 separately
 (server and clients, as that mod requires), then just talk near NPCs. See *Voice* below.
 
-Clients (optional): put the same jar in your `mods/` to hear NPCs speak (text-to-speech). Nearby NPCs stop
-and turn to listen.
+Clients don't need MCattle: it runs entirely on the server (or in your own game in singleplayer).
 
 Build from source with `./gradlew build` (JDK 17+). The jar ends up in `build/libs/`.
 
@@ -190,9 +189,7 @@ Created on first start. The most important fields:
     "engine": "local",                  // "local" (Vosk, offline) or "http" (endpoint below)
     "endpoint": "https://api.openai.com/v1/audio/transcriptions",
     "apiKey": "", "model": "whisper-1", "language": "en",
-    "listenRange": 10,                  // NPCs this close stop and listen
-    "textToSpeech": true,               // send NPC lines to clients with the mod to be read aloud
-    "textToSpeechRange": 48
+    "listenRange": 10                   // NPCs this close stop and listen
   },
   "npc": {
     "maxNpcs": 8, "hearingRange": 32, "voiceRange": 64,
@@ -228,29 +225,6 @@ NPCs in text chat.
   e.g. OpenAI (`https://api.openai.com/v1/audio/transcriptions`, model `whisper-1`) or Groq
   (`https://api.groq.com/openai/v1/audio/transcriptions`, model `whisper-large-v3`). Other languages with
   Vosk: set `speech.localModelUrl` to a model from the [Vosk model list](https://alphacephei.com/vosk/models).
-
-### Text-to-speech (client)
-
-Each player with the mod picks how NPCs sound in `config/mcattle-client.json` (created on first launch):
-
-```jsonc
-{
-  // ... speechToText settings (see above), then:
-  "enabled": true,
-  "engine": "system",       // "system" (free, offline), "http" (OpenAI-compatible /v1/audio/speech) or "off"
-  "volume": 1.0,            // also follows Minecraft's Master and Players sliders
-  "maxDistance": 48,
-  "httpEndpoint": "https://api.openai.com/v1/audio/speech",
-  "httpApiKey": "",
-  "httpModel": "tts-1",
-  "httpVoices": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-}
-```
-
-`system` uses the voices built into the OS: Windows speech (via PowerShell), `say` on macOS, `espeak-ng` or
-`espeak` on Linux (install one of those first). For more natural voices, point `http` at OpenAI or at a
-local server such as [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)
-(`http://127.0.0.1:8880/v1/audio/speech`, model `kokoro`, voices like `af_bella`, `am_adam`).
 
 ## Talking to NPCs
 
@@ -309,7 +283,7 @@ NpcPlayer ── a real ServerPlayerEntity with a fake connection (Carpet-style)
 
 Key packages: `dev.mcattle.core` (Minecraft-independent: parser, LLM clients, blueprints, names, speech),
 `control` (movement, pathfinding, block and inventory handling, knowledge base), `task` (skills),
-`npc` (entity, brain, manager), `ai` (routing, situation reports, banter), `voice` (Simple Voice Chat input, speech recognition), `client` (text-to-speech).
+`npc` (entity, brain, manager), `ai` (routing, situation reports, banter), `voice` (Simple Voice Chat input, speech recognition).
 
 ## Limitations
 

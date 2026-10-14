@@ -288,14 +288,6 @@ public final class NpcSocial {
         return best;
     }
 
-    /** True if the NPC can't stand this player enough to refuse an order (built-in replies only; the model decides itself). */
-    public boolean refuses(ServerPlayerEntity speaker) {
-        Relationship r = mind().relation(key(speaker));
-        if (r == null) return false;
-        double resentment = -r.affinity - r.trust * 0.3 + mind().get(Emotion.ANGER) * 30;
-        return resentment > 60 && npc.random().nextDouble() < Math.min(0.9, (resentment - 50) / 50);
-    }
-
     public double affinity(Entity other) {
         return mind().affinity(key(other));
     }

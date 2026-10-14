@@ -42,6 +42,7 @@ public final class Skills {
     public static final String ACTIVITY = "activity";
     public static final String USE = "use";
     public static final String BREAK = "break";
+    public static final String DIE = "die";
 
     /** name -> one-line documentation (fields: target, item, count, options). */
     public static final Map<String, String> CATALOG = new LinkedHashMap<>();
@@ -59,7 +60,7 @@ public final class Skills {
         CATALOG.put(GIVE, "walk to target and toss them count of item (count 0 = all of it, item '*' = whole inventory); gets the item first if missing unless options obtain=false");
         CATALOG.put(DROP, "drop count of item on the ground (item '*' = everything)");
         CATALOG.put(EQUIP, "hold or wear item");
-        CATALOG.put(ATTACK, "fight target (player/NPC name or mob type like 'zombie') with real PvP technique; options lethal=true|false (false = stop when target is low), duration=seconds");
+        CATALOG.put(ATTACK, "fight target (player/NPC name or mob type like 'zombie') with real PvP technique; options lethal=true|false (default true = to the death; false = friendly spar that stops when target is low), duration=seconds");
         CATALOG.put(GUARD, "stay near target and kill hostile mobs or attackers that come close");
         CATALOG.put(HUNT, "kill count mobs of type item (e.g. 'cow') and pick up the drops");
         CATALOG.put(BUILD, "design and build anything described in text (free-form: 'a cozy spruce cabin with a porch', 'a giant pixel-art creeper', 'a 3x3 tic tac toe board of white wool'); target = where (default: in front of speaker, or 'x y z' corner); options size=small|medium|large; gathers materials in survival; other NPCs join with help");
@@ -81,6 +82,7 @@ public final class Skills {
         CATALOG.put(HELP, "help target NPC with its current task (share its build, gather for it, fight with it)");
         CATALOG.put(REPORT, "say your inventory and status");
         CATALOG.put(LOOK, "look at target");
+        CATALOG.put(DIE, "die on purpose (\"kill yourself\", \"go die\"); options how=lava to walk into nearby lava, otherwise drops dead like /kill. It respawns at home");
     }
 
     public static boolean isKnown(String action) {

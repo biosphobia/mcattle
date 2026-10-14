@@ -393,7 +393,7 @@ public final class NpcBrain {
     }
 
     private void checkReflexes() {
-        if (reflex != null) return;
+        if (reflex != null || current instanceof dev.mcattle.task.DieTask) return; // told to die: no saving itself
         // strong feelings (fear of someone, a grudge) take over unless busy with something a player asked for
         if (current == null || planner.owns(current) || current.isOpenEnded()) {
             Task impulse = feelings.impulse();

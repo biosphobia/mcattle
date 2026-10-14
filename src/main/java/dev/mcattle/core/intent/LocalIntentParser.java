@@ -165,11 +165,16 @@ public final class LocalIntentParser {
         if ((m = Pattern.compile("^(guard|protect|defend|watch over|cover|bodyguard) (\\w+)$").matcher(t)).matches())
             return List.of(Step.of(Skills.GUARD, resolvePerson(m.group(2), playerNames), "", 0, ""));
 
+        // "kill yourself": it's a game, they respawn
+        if (t.matches("^(kill|end|off) (yourself|urself|ur self|yourselves|yourselfs)( now| please| pls)?$|^(go )?(die|drop dead|commit die)( now| please| pls)?$"))
+            return List.of(Step.of(Skills.DIE));
+        if (t.matches("^(go )?(jump|walk|dive) (in|into) (the )?lava$"))
+            return List.of(Step.of(Skills.DIE, "", "", 0, "how=lava"));
         // fights
         if ((m = Pattern.compile("^(attack|fight|kill|hit|punch|slay|murder|destroy|beat up|duel|pvp|spar with|spar|1v1|fight with) (me|\\w+)( to the death| for real| seriously)?( please)?$").matcher(t)).matches()) {
             String verb = m.group(1);
-            boolean lethal = m.group(3) != null || verb.equals("kill") || verb.equals("murder") || verb.equals("slay");
-            if (verb.startsWith("spar")) lethal = false;
+            // all the way unless it's clearly a friendly match
+            boolean lethal = m.group(3) != null || !(verb.startsWith("spar") || verb.equals("duel") || verb.equals("1v1") || verb.equals("pvp"));
             String who = resolvePerson(m.group(2), playerNames);
             List<Step> plan = new ArrayList<>();
             plan.add(Step.of(Skills.EQUIP, "", "#minecraft:swords", 0, ""));

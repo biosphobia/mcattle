@@ -142,9 +142,9 @@ public final class TaskFactory {
                 String spec = step.target().isBlank() ? step.item() : step.target();
                 Target t = target(npc, spec, speaker);
                 Entity e = t.entity(npc);
-                boolean defaultLethal = !(e instanceof PlayerEntity);
-                if (e == npc.npc()) throw new Problem("i'm not fighting myself lol");
-                return new AttackTask(t, step.boolOption("lethal", defaultLethal), step.intOption("duration", 0), false);
+                if (e == npc.npc()) return new DieTask(step.option("how", ""));
+                // ordered fights go all the way unless the player asked for a friendly spar (lethal=false)
+                return new AttackTask(t, step.boolOption("lethal", true), step.intOption("duration", 0), false);
             }
             case Skills.GUARD -> {
                 return new GuardTask(target(npc, step.target(), speaker));
@@ -258,6 +258,9 @@ public final class TaskFactory {
                     }
                 }
                 return npc.manager().mod().activities().start(npc, goal, participants, speaker);
+            }
+            case Skills.DIE -> {
+                return new DieTask(step.option("how", step.item()));
             }
             case Skills.LOOK -> {
                 return new LookTask(target(npc, step.target(), speaker), 60);
