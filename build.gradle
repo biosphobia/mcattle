@@ -25,6 +25,13 @@ loom {
     }
 }
 
+sourceSets {
+    // Signatures of the Simple Voice Chat plugin API, for compiling only (the real API ships with that mod).
+    voicechatApi {
+        java { srcDirs = ['stubs/voicechat-api'] }
+    }
+}
+
 configurations {
     // Plain Java libraries (the Anthropic SDK and its transitive deps) that get nested into the mod jar.
     bundled
@@ -45,13 +52,14 @@ dependencies {
             "fabric-lifecycle-events-v1",
             "fabric-message-api-v1",
             "fabric-networking-api-v1",
-            "fabric-key-binding-api-v1",
-            "fabric-rendering-v1",
     ].each { name ->
         include fabricApi.module(name, project.fabric_version)
     }
 
     bundled "com.anthropic:anthropic-java:${project.anthropic_java_version}"
+
+    // Optional Simple Voice Chat integration: compile against the API stubs, never package them
+    compileOnly sourceSets.voicechatApi.output
 
     // gson ships with Minecraft at runtime; the plain unit-test classpath needs it explicitly
     testImplementation "com.google.code.gson:gson:2.10.1"

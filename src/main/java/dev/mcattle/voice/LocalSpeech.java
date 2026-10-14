@@ -1,4 +1,4 @@
-package dev.mcattle.client;
+package dev.mcattle.voice;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -26,12 +26,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Offline speech recognition on the player's own computer with Vosk. Nothing has to be installed or hosted:
+ * Offline speech recognition with Vosk, running where the world runs (your own PC in singleplayer, the server
+ * machine otherwise). Nothing has to be installed or hosted:
  * the first time it's used, the Vosk engine (from Maven Central, checksum-verified) and a small speech model
  * are downloaded into {@code config/mcattle/speech}. Vosk is loaded in its own class loader (it ships native
  * code for Windows, macOS and Linux) so the mod jar stays small.
  */
-final class LocalSpeech {
+public final class LocalSpeech {
     private static final String VOSK_VERSION = "0.3.45";
     private static final String VOSK_URL = "https://repo1.maven.org/maven2/com/alphacephei/vosk/" + VOSK_VERSION + "/vosk-" + VOSK_VERSION + ".jar";
     private static final String VOSK_SHA1 = "f6e44146c02e03e662718f71ff22e4a49642bdda";
@@ -45,13 +46,13 @@ final class LocalSpeech {
     private Constructor<?> recognizerCtor;
     private Method acceptWaveForm, finalResult;
 
-    LocalSpeech(Path dir, String modelUrl) {
+    public LocalSpeech(Path dir, String modelUrl) {
         this.dir = dir;
         this.modelUrl = modelUrl;
     }
 
     /** Turns 16 kHz mono 16-bit PCM into text. Blocks (downloads on first use); status gets progress messages. */
-    synchronized String transcribe(byte[] pcm, Consumer<String> status) throws Exception {
+    public synchronized String transcribe(byte[] pcm, Consumer<String> status) throws Exception {
         load(status);
         AutoCloseable recognizer = (AutoCloseable) recognizerCtor.newInstance(model, 16000f);
         try {
@@ -65,7 +66,7 @@ final class LocalSpeech {
     }
 
     /** Downloads and loads everything ahead of time (called when the push-to-talk key goes down). */
-    synchronized void prepare(Consumer<String> status) {
+    public synchronized void prepare(Consumer<String> status) {
         try {
             load(status);
         } catch (Exception ignored) {
@@ -74,7 +75,7 @@ final class LocalSpeech {
     }
 
     /** Not synchronized: called from the game thread while a download may hold the lock. */
-    boolean isLoaded() {
+    public boolean isLoaded() {
         return model != null;
     }
 

@@ -2,7 +2,7 @@
 
 A Fabric mod that adds AI-powered, player-like NPCs to a multiplayer server. NPCs join as real players: they
 have skins, show up in the tab list, and carry their own inventory, armor and health. They play survival on
-their own, chat, greet people, and take orders by **text chat** or **push-to-talk voice**.
+their own, chat, greet people, and take orders by **text chat** or **voice through the [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) mod**.
 
 > **Status:** the mod builds (GitHub Actions compiles it against Minecraft 1.20.1 with Fabric Loom and runs
 > 24 unit tests; the jar is attached to each run as the `mcattle` artifact). It has **not been played in-game
@@ -52,7 +52,7 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
   is blocked) or they die, they quietly ask for another way and carry on, up to 3 times, and only then
   tell you what went wrong.
 - **Show what they're up to.** A small line floats above each busy NPC: `♪ listening` while you hold
-  push-to-talk, `✎ thinking...` while it waits for Claude, and its current step (`⛏ mining iron ore`,
+  talk near it over voice chat, `✎ thinking...` while it waits for Claude, and its current step (`⛏ mining iron ore`,
   `⌂ building the cottage`, `⚔ attacking Steve`). It's a vanilla text display, so everyone sees it without the
   client mod. Hidden when idle; `npc.statusIndicator` turns it off.
 - **Talk out loud.** On clients with the mod, NPC chat is read aloud with text-to-speech. Each NPC keeps its
@@ -157,8 +157,10 @@ Server (required): Fabric Loader 0.16+ for 1.20.1 and `mcattle-<version>.jar` in
 standalone and bundles the parts of Fabric API it needs (having the full Fabric API installed as well is fine).
 Clients can join **without** the mod and still use text commands.
 
-Clients (optional): put the same jar in your `mods/` for push-to-talk and to hear NPCs speak. Bind *"Talk to NPCs (push to talk)"*
-(default **B**) under Controls. While you hold it, a mic badge with a level meter appears and nearby NPCs stop
+Voice (optional): install [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) for 1.20.1 separately
+(server and clients, as that mod requires), then just talk near NPCs. See *Voice* below.
+
+Clients (optional): put the same jar in your `mods/` to hear NPCs speak (text-to-speech). Nearby NPCs stop
 and turn to listen.
 
 Build from source with `./gradlew build` (JDK 17+). The jar ends up in `build/libs/`.
@@ -184,10 +186,11 @@ Created on first start. The most important fields:
     "banterIntervalSeconds": 420
   },
   "speech": {
-    "enabled": true,
-    "endpoint": "http://127.0.0.1:8080/v1/audio/transcriptions",
-    "model": "whisper-1",
-    "language": "en",
+    "enabled": true,                    // listen to players over Simple Voice Chat
+    "engine": "local",                  // "local" (Vosk, offline) or "http" (endpoint below)
+    "endpoint": "https://api.openai.com/v1/audio/transcriptions",
+    "apiKey": "", "model": "whisper-1", "language": "en",
+    "listenRange": 10,                  // NPCs this close stop and listen
     "textToSpeech": true,               // send NPC lines to clients with the mod to be read aloud
     "textToSpeechRange": 48
   },
@@ -202,28 +205,29 @@ Created on first start. The most important fields:
 
 `/npc reload` re-reads the file.
 
-### Voice (speech-to-text)
+### Voice (Simple Voice Chat)
 
-Push-to-talk works out of the box, in singleplayer too. By default speech is recognized **on the player's own
-computer** with [Vosk](https://alphacephei.com/vosk/), offline and free. The first time you hold the key, the
-client downloads the Vosk engine (~26 MB, from Maven Central, checksum-checked) and a small English model
-(~40 MB) into `config/mcattle/speech/`. The HUD shows the progress. After that it needs no internet. Only the
-recognized text is sent to the server.
+MCattle has no voice chat of its own. It listens through
+[Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat), which you install separately as usual for
+that mod. MCattle hooks into it automatically when present. Without it, everything else works and you talk to
+NPCs in text chat.
 
-Pick another way in `config/mcattle-client.json` with `"speechToText"`:
-
-| value | where speech is recognized | what you need |
-|---|---|---|
-| `"local"` (default) | your computer, offline (Vosk) | nothing |
-| `"http"` | an OpenAI-compatible transcription API, called from your computer | `sttEndpoint` + `sttApiKey`, e.g. OpenAI (`https://api.openai.com/v1/audio/transcriptions`, model `whisper-1`) or Groq (`https://api.groq.com/openai/v1/audio/transcriptions`, model `whisper-large-v3`) |
-| `"server"` | the Minecraft server sends the audio to `speech.endpoint` in `config/mcattle.json` | a whisper server the server can reach, e.g. [whisper.cpp](https://github.com/ggerganov/whisper.cpp): `./whisper-server -m models/ggml-base.en.bin --port 8080 --inference-path /v1/audio/transcriptions` |
-
-Other languages: set `localModelUrl` to another model from the [Vosk model list](https://alphacephei.com/vosk/models).
-`http` is the most accurate. `local` is good for short commands and may mishear unusual NPC names, but
-voice messages don't need a name anyway: every NPC within `voiceRange` hears them. The transcript appears
-in chat as `<You> ... [voice]` and is handled like a typed message.
-
-macOS: the Minecraft launcher needs microphone permission (System Settings → Privacy & Security → Microphone).
+- **Talk normally.** Use voice chat as usual (push-to-talk or voice activation). When you're within `voiceRange`
+  of an NPC, the server picks up what you say. NPCs within `speech.listenRange` (10 blocks) stop and turn to
+  you, with `♪ listening` over their heads. Nothing is muted or changed, so other players still hear you.
+- **When NPCs react.** Each pause in speech ends one message. It's recognized, shown in chat as
+  `<You> ... [voice]`, and handled like typed chat. NPCs react when you say their name, when it sounds like an
+  order ("follow me", "build a house"), or when you ask a single nearby NPC a question. Talking with your
+  friends doesn't set them off every time.
+- **Speech recognition** runs where the world runs: your own PC in singleplayer, the server machine on a
+  server. By default it's [Vosk](https://alphacephei.com/vosk/), which is offline and free. The first time
+  someone talks near an NPC, the engine (~26 MB, from Maven Central, checksum-checked) and a small English model
+  (~40 MB) are downloaded into `config/mcattle/speech/`, with progress shown above the hotbar. After that it
+  needs no internet.
+- **For better accuracy**, set `speech.engine` to `"http"` and fill in `speech.endpoint` / `speech.apiKey`,
+  e.g. OpenAI (`https://api.openai.com/v1/audio/transcriptions`, model `whisper-1`) or Groq
+  (`https://api.groq.com/openai/v1/audio/transcriptions`, model `whisper-large-v3`). Other languages with
+  Vosk: set `speech.localModelUrl` to a model from the [Vosk model list](https://alphacephei.com/vosk/models).
 
 ### Text-to-speech (client)
 
@@ -305,7 +309,7 @@ NpcPlayer ── a real ServerPlayerEntity with a fake connection (Carpet-style)
 
 Key packages: `dev.mcattle.core` (Minecraft-independent: parser, LLM clients, blueprints, names, speech),
 `control` (movement, pathfinding, block and inventory handling, knowledge base), `task` (skills),
-`npc` (entity, brain, manager), `ai` (routing, situation reports, banter), `client` (push-to-talk, text-to-speech).
+`npc` (entity, brain, manager), `ai` (routing, situation reports, banter), `voice` (Simple Voice Chat input, speech recognition), `client` (text-to-speech).
 
 ## Limitations
 

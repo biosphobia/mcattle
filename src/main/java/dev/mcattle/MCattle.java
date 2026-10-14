@@ -8,7 +8,6 @@ import dev.mcattle.core.llm.AnthropicProvider;
 import dev.mcattle.core.llm.LlmProvider;
 import dev.mcattle.core.llm.LlmService;
 import dev.mcattle.core.llm.OpenAiCompatibleProvider;
-import dev.mcattle.net.VoiceService;
 import dev.mcattle.npc.NpcManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -39,13 +38,14 @@ public final class MCattle implements ModInitializer {
     @Nullable private MinecraftServer server;
     private final CommandRouter router = new CommandRouter(this);
     private final BanterService banter = new BanterService(this);
-    private final VoiceService voice = new VoiceService(this);
+    private final dev.mcattle.voice.VoiceInput voice = new dev.mcattle.voice.VoiceInput(this);
+    @Nullable private static MCattle instance;
     private final dev.mcattle.ai.ActivityManager activities = new dev.mcattle.ai.ActivityManager(this);
 
     @Override
     public void onInitialize() {
+        instance = this;
         config = MCattleConfig.load(configFile);
-        voice.register();
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> NpcCommand.register(dispatcher, this));
 
         ServerLifecycleEvents.SERVER_STARTED.register(s -> {
@@ -58,6 +58,7 @@ public final class MCattle implements ModInitializer {
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> {
             activities.clear();
+            voice.close();
             if (npcs != null) npcs.shutdown();
             if (llm != null) llm.close();
             npcs = null;
@@ -66,6 +67,7 @@ public final class MCattle implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(s -> {
             if (npcs == null) return;
             npcs.tick();
+            voice.tick();
             activities.tick();
             banter.tick();
         });
@@ -130,6 +132,16 @@ public final class MCattle implements ModInitializer {
 
     public dev.mcattle.ai.ActivityManager activities() {
         return activities;
+    }
+
+    /** The running mod instance (for the Simple Voice Chat plugin, which Simple Voice Chat creates itself). */
+    @Nullable
+    public static MCattle instance() {
+        return instance;
+    }
+
+    public dev.mcattle.voice.VoiceInput voice() {
+        return voice;
     }
 
     public CommandRouter router() {

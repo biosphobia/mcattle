@@ -10,24 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/** Client-side voice settings (speech recognition and text-to-speech), stored in {@code config/mcattle-client.json}. */
+/** Client-side text-to-speech settings, stored in {@code config/mcattle-client.json}. */
 public final class ClientConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-
-    // ---- push-to-talk speech recognition ----
-    /**
-     * "local": recognized on this computer with Vosk (free, offline, nothing to install: the engine and a ~40 MB
-     * English model are downloaded once into config/mcattle/speech). Works in singleplayer.
-     * "http": sent from this computer to an OpenAI-compatible /v1/audio/transcriptions endpoint (OpenAI, Groq...).
-     * "server": the audio goes to the Minecraft server, which transcribes it with its own configured endpoint.
-     */
-    public String speechToText = "local";
-    /** Vosk model to download for "local" (see https://alphacephei.com/vosk/models for other languages). */
-    public String localModelUrl = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip";
-    public String sttEndpoint = "https://api.openai.com/v1/audio/transcriptions";
-    public String sttApiKey = "";
-    public String sttModel = "whisper-1";
-    public String sttLanguage = "en";
 
     // ---- text-to-speech ----
     /** Read NPC chat aloud. */

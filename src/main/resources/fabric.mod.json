@@ -3,16 +3,27 @@
   "id": "mcattle",
   "version": "${version}",
   "name": "MCattle - AI Companions",
-  "description": "AI-powered player NPCs that play survival on their own, team up, and follow voice or chat commands (Claude API or a local model).",
-  "authors": ["MCattle contributors"],
+  "description": "AI-powered player NPCs that play survival on their own, team up, and follow chat commands or voice via Simple Voice Chat (Claude API or a local model).",
+  "authors": [
+    "MCattle contributors"
+  ],
   "license": "MIT",
   "icon": "assets/mcattle/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": ["dev.mcattle.MCattle"],
-    "client": ["dev.mcattle.client.MCattleClient"]
+    "main": [
+      "dev.mcattle.MCattle"
+    ],
+    "client": [
+      "dev.mcattle.client.MCattleClient"
+    ],
+    "voicechat": [
+      "dev.mcattle.voice.VoicechatIntegration"
+    ]
   },
-  "mixins": ["mcattle.mixins.json"],
+  "mixins": [
+    "mcattle.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.14.21",
     "minecraft": "~1.20.1",
@@ -23,8 +34,7 @@
     "fabric-message-api-v1": "*",
     "fabric-networking-api-v1": "*"
   },
-  "recommends": {
-    "fabric-key-binding-api-v1": "*",
-    "fabric-rendering-v1": "*"
+  "suggests": {
+    "voicechat": "*"
   }
 }

@@ -58,19 +58,29 @@ public final class MCattleConfig {
     }
 
     public static final class Speech {
-        /** Accept push-to-talk audio from clients that have the mod installed. */
+        /**
+         * Listen to players over the Simple Voice Chat mod (install it separately). Players near NPCs are heard;
+         * what they say is handled like chat. Without Simple Voice Chat this does nothing.
+         */
         public boolean enabled = true;
         /**
-         * OpenAI-compatible transcription endpoint (multipart "file" + "model").
-         * Works with whisper.cpp's server (run with --inference-path /v1/audio/transcriptions),
-         * faster-whisper-server/speaches, LocalAI, Groq or OpenAI.
+         * "local": Vosk speech recognition on the machine running the world (your PC in singleplayer), offline;
+         * the engine and a ~40 MB model are downloaded once into config/mcattle/speech.
+         * "http": an OpenAI-compatible /v1/audio/transcriptions endpoint (OpenAI, Groq, a whisper server...).
          */
-        public String endpoint = "http://127.0.0.1:8080/v1/audio/transcriptions";
+        public String engine = "local";
+        /** Vosk model for "local" (other languages: https://alphacephei.com/vosk/models). */
+        public String localModelUrl = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip";
+        public String endpoint = "https://api.openai.com/v1/audio/transcriptions";
         public String apiKey = "";
         public String model = "whisper-1";
         public String language = "en";
-        /** Max seconds of audio accepted per utterance. */
+        /** Longest piece of speech recognized at once, in seconds. */
         public int maxSeconds = 20;
+        /** NPCs this close stop what they're doing and turn to the player while they talk. */
+        public int listenRange = 10;
+        /** Show what was understood in chat as "<Player> ... [voice]". */
+        public boolean showTranscripts = true;
         /**
          * Send what NPCs say to nearby players who have MCattle on their client, so it is read aloud there
          * (voice and engine are chosen in each player's config/mcattle-client.json).

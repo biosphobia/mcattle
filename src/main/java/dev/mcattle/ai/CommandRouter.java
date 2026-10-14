@@ -89,8 +89,9 @@ public final class CommandRouter {
             for (NpcBrain b : manager().all()) {
                 if (b.npc().getWorld() == speaker.getWorld() && b.npc().distanceTo(speaker) <= range) targets.add(b);
             }
-            // plain chat without a name only counts if it sounds like it's meant for the NPCs
-            if (!voice && !everyone && !parsed.looksLikeCommand() && !(parsed.question() && targets.size() == 1 && closeTo(targets.get(0), speaker, 8))) {
+            // without a name, chat or voice only counts if it sounds like it's meant for the NPCs (players also
+            // talk to each other over voice chat)
+            if (!everyone && !parsed.looksLikeCommand() && !(parsed.question() && targets.size() == 1 && closeTo(targets.get(0), speaker, 8))) {
                 return;
             }
         }
