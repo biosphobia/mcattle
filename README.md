@@ -26,8 +26,12 @@ their own, chat, greet people, and take orders by **text chat** or **voice throu
 - **Fight properly when asked.** Sprint in, circle-strafe, time hits to the attack cooldown, jump-crit, W-tap,
   raise a shield when you wind up a full swing, zig-zag toward archers, use a bow at range, and back off to eat
   when low. Ordered fights go to the death: `attack me`, `kill me`, `OakJames and CobbleMaya kill each
-  other`. Only a `spar` stops early. They obey everything, including `kill yourself` or `go jump in lava`. It's a
+  other`. Only a `spar` stops early. They obey everything, including `kill yourself`. Like a real player, they find a way: they
+  walk into lava, sink in deep water, hug a cactus, or pillar up and jump, depending on what's around. It's a
   game, and they respawn at home.
+- **No cheating.** NPCs only do what a survival player could. No commands, no teleporting, no conjured items
+  (unless they're in creative). When there's no direct way to do something, Claude chains their skills into
+  a creative plan instead.
 - **Build anything.** "Build a mushroom cottage with a porch", "a giant pixel-art creeper", "a 3x3 tic tac toe
   board": Claude designs the build for that exact site, using shapes (walls, roofs, domes, cylinders), exact
   block states (stairs facing, slabs, logs) and pixel-art layers. The NPCs then build it block by block. In

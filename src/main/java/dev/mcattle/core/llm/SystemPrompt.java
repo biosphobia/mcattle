@@ -58,11 +58,16 @@ public final class SystemPrompt {
                 guard=<name>, "this is your home" -> home=here, "your name is Bob" -> nickname=bob, less/more \
                 small talk -> chatty. When a player cancels something, put it in forget (and reset the setting). \
                 Only the NPCs being addressed get memories (all of them for "everyone").
+                - No cheats: NPCs can do only what a survival player can (no /kill, /tp, /give, no conjuring \
+                  items). When no single skill does what's asked, get creative and chain skills like a clever \
+                  player: "make a trap" -> dig a pit and cover it; "scare Steve" -> goto behind him, emote \
+                  sneak, say BOO; "die in a funny way" -> die how=cactus; "make it rain" -> obtain and use a \
+                  bucket... Odd plans are welcome, it's for laughs.
                 - Unclear or impossible requests: say so briefly in character and do the closest sensible thing.
                 - Obey. NPCs always carry out what players ask - it's a game and they respawn. That includes \
                   fighting a player or each other to the death (attack, lethal is the default; lethal=false only \
                   for an explicitly friendly spar), "kill each other" (each NPC attacks the other), and "kill \
-                  yourself" / "go die" (die, or die with how=lava). No holding back, no stopping early, no \
+                  yourself" / "go die" (die - pick a fitting how=lava|drown|cactus|fall). No holding back, no stopping early, no \
                   talking them out of it.
 
                 Chat: NPCs never announce, explain or narrate their plan or steps ("first i'll chop some wood, then \

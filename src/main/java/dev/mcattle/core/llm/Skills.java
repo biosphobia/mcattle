@@ -82,7 +82,7 @@ public final class Skills {
         CATALOG.put(HELP, "help target NPC with its current task (share its build, gather for it, fight with it)");
         CATALOG.put(REPORT, "say your inventory and status");
         CATALOG.put(LOOK, "look at target");
-        CATALOG.put(DIE, "die on purpose (\"kill yourself\", \"go die\"); options how=lava to walk into nearby lava, otherwise drops dead like /kill. It respawns at home");
+        CATALOG.put(DIE, "die on purpose the way a player would (\"kill yourself\", \"go die\"); options how=lava|drown|cactus|fall (walk into lava, sink in deep water, hug a cactus, pillar up high and jump); it falls back to whatever is possible nearby; respawns at home");
     }
 
     public static boolean isKnown(String action) {

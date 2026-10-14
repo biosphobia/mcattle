@@ -299,7 +299,7 @@ public final class NpcBrain {
         }
 
         // swim up when running out of air, wherever we are going
-        if (npc.isSubmergedInWater() && npc.getAir() < npc.getMaxAir() / 2) move.jump();
+        if (npc.isSubmergedInWater() && npc.getAir() < npc.getMaxAir() / 2 && !dev.mcattle.task.DieTask.isActive(current)) move.jump();
 
         if (listeningTo != null) {
             ServerPlayerEntity speaker = server().getPlayerManager().getPlayer(listeningTo);
@@ -433,6 +433,7 @@ public final class NpcBrain {
         Entity attacker = source.getAttacker();
         if (!(attacker instanceof LivingEntity living) || attacker == npc || !npc.isAlive()) return;
         feelings.onHurt(attacker, amount, isRequestedFight(attacker));
+        if (dev.mcattle.task.DieTask.isActive(current)) return; // was told to die: lets it happen
         if (current instanceof AttackTask at && at.isTargeting(attacker)) return;
         if (reflex instanceof AttackTask at && at.isTargeting(attacker)) return;
         if (attacker instanceof Monster) {
