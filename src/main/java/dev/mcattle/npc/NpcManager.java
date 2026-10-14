@@ -234,6 +234,7 @@ public final class NpcManager {
 
     public boolean remove(NpcBrain brain, boolean forget) {
         brain.clearOrders();
+        brain.indicator().remove();
         brains.remove(brain.npc().getUuid());
         if (forget) {
             registry.remove(brain.name());
@@ -287,6 +288,7 @@ public final class NpcManager {
         for (NpcBrain b : new ArrayList<>(brains.values())) {
             try {
                 b.clearOrders();
+                b.indicator().remove();
                 b.npc().networkHandler.onDisconnected(Text.literal("Server closed"));
             } catch (Exception e) {
                 MCattle.LOGGER.warn("Error disconnecting NPC {}", b.name(), e);

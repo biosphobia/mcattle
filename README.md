@@ -47,6 +47,10 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
 - **Keep at it.** NPCs remember what you asked for until it's done. If a step fails (no trees nearby, a path
   is blocked) or they die, they quietly ask for another way and carry on, up to 3 times, and only then
   tell you what went wrong.
+- **Show what they're up to.** A small line floats above each busy NPC: `♪ listening` while you hold
+  push-to-talk, `✎ thinking...` while it waits for Claude, and its current step (`⛏ mining iron ore`,
+  `⌂ building the cottage`, `⚔ attacking Steve`). It's a vanilla text display, so everyone sees it without the
+  client mod. Hidden when idle; `npc.statusIndicator` turns it off.
 - **Talk out loud.** On clients with the mod, NPC chat is read aloud with text-to-speech. Each NPC keeps its
   own voice, and lines get quieter with distance and pan to the side the NPC is on.
 - **Work as a team.** With no name in the message, every NPC in range takes the order. One language-model call

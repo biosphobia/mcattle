@@ -94,6 +94,8 @@ public final class MCattleConfig {
         public boolean persist = true;
         /** NPCs may see ores through walls. Off = they must find or dig to them like a player. */
         public boolean allowXray = false;
+        /** Small floating line above each NPC showing what it's doing, or that it's thinking / listening. */
+        public boolean statusIndicator = true;
         /** NPCs fight back when a player hits them without having asked for a fight. */
         public boolean retaliate = true;
         /** Autonomous NPCs only break natural blocks (logs, stone, dirt, ores...) never player builds. */

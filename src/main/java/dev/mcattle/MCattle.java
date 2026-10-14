@@ -69,6 +69,10 @@ public final class MCattle implements ModInitializer {
             activities.tick();
             banter.tick();
         });
+        // status lines left floating in the world after a crash
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (dev.mcattle.npc.StatusIndicator.isOrphan(entity)) entity.discard();
+        });
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
             try {
                 router.onChat(sender, message.getSignedContent());

@@ -56,6 +56,7 @@ public final class NpcBrain {
     private final Navigator nav;
     private final SocialBehavior social;
     private final NpcSocial feelings;
+    private final StatusIndicator indicator;
     private final AutonomousPlanner planner;
     private final Random random = new Random();
 
@@ -90,6 +91,7 @@ public final class NpcBrain {
         this.nav = new Navigator(npc, move, hands, inventory);
         this.social = new SocialBehavior(this);
         this.feelings = new NpcSocial(this);
+        this.indicator = new StatusIndicator(this);
         this.planner = new AutonomousPlanner(this);
         this.autonomous = identity.autonomous;
     }
@@ -170,6 +172,17 @@ public final class NpcBrain {
 
     public List<Task> queuedTasks() {
         return new ArrayList<>(orders);
+    }
+
+    public StatusIndicator indicator() { return indicator; }
+
+    /** What floats above its head: "♪ listening", "✎ thinking..", "⛏ mining iron ore", or "" when idle. */
+    public String statusLine() {
+        if (listeningTo != null) return "♪ listening";
+        if (thinkingTicks > 0) return "✎ thinking" + ".".repeat(1 + (int) (ticksAlive / 10 % 3));
+        if (npc.isSleeping()) return "☾ sleeping";
+        Task t = currentTask();
+        return t == null ? "" : StatusIndicator.compact(t.describeDeep());
     }
 
     /** One-line status for the language model and /npc list. */
@@ -267,6 +280,7 @@ public final class NpcBrain {
         ticksAlive++;
         move.reset();
         flushChat();
+        indicator.tick();
 
         if (ticksAlive % 40 == 0) {
             inventory.equipBestArmor();
@@ -436,6 +450,8 @@ public final class NpcBrain {
     }
 
     public void onDeadTick() {
+        ticksAlive++;
+        indicator.tick();
         move.reset();
         flushChat();
     }
