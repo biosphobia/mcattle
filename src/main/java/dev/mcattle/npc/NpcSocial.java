@@ -194,7 +194,7 @@ public final class NpcSocial {
             event(bothWorking ? SocialEvent.WORKED_TOGETHER : SocialEvent.TIME_TOGETHER, p, bothWorking ? 0.4 : 1, null);
         }
         if (npc.nearbyPlayers(32, true).isEmpty()) {
-            if (++lonelyMinutes > 8) mind().feel("lonely", 0.25 * mind().temperament().warmth);
+            if (++lonelyMinutes > 8) mind().feel("lonely", 0.25 * mind().temperament().warmth());
         } else {
             lonelyMinutes = 0;
         }
