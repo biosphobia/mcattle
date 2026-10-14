@@ -50,7 +50,7 @@ public final class PlaceTask extends Task {
         if (npc.npc().isCreative() && npc.inventory().count(item) == 0 && item.preferred() != null) {
             npc.inventory().giveCreative(new net.minecraft.item.ItemStack(item.preferred()));
         }
-        InteractionControl.Result r = npc.hands().placeBlock(pos, item, npc.config().npc.assistedPlacement);
+        InteractionControl.Result r = npc.hands().placeBlock(pos, item);
         if (r == InteractionControl.Result.DONE) return Status.SUCCESS;
         return ++attempts > 20 ? fail("can't place it there") : Status.RUNNING;
     }

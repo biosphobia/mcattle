@@ -54,6 +54,10 @@ public final class NpcCommand {
                 .then(literal("remove")
                         .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
                                 .executes(ctx -> remove(ctx, mod, StringArgumentType.getString(ctx, "npc")))))
+                .then(literal("smite")
+                        .executes(ctx -> remove(ctx, mod, "all"))
+                        .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
+                                .executes(ctx -> remove(ctx, mod, StringArgumentType.getString(ctx, "npc")))))
                 .then(literal("list").executes(ctx -> list(ctx, mod)))
                 .then(literal("skins").executes(ctx -> {
                     ctx.getSource().sendFeedback(() -> Text.literal("Skins: " + String.join(", ", mod.config().npc.skinPresets.keySet())
@@ -179,11 +183,11 @@ public final class NpcCommand {
                 ctx.getSource().sendError(Text.literal("You can only remove your own NPCs"));
                 continue;
             }
-            mod.npcs().remove(b, true);
+            mod.npcs().smite(b);
             n++;
         }
         int count = n;
-        if (count > 0) ctx.getSource().sendFeedback(() -> Text.literal("Removed " + count + " NPC(s)"), true);
+        if (count > 0) ctx.getSource().sendFeedback(() -> Text.literal("Smote " + count + " NPC(s)"), true);
         return count;
     }
 

@@ -33,7 +33,7 @@ public final class PlaceNearTask extends Task {
             npc.move().input(0.6f, 0); // wander a little and look again
             return Status.RUNNING;
         }
-        InteractionControl.Result r = npc.hands().placeBlock(spot, item, npc.config().npc.assistedPlacement);
+        InteractionControl.Result r = npc.hands().placeBlock(spot, item);
         if (r == InteractionControl.Result.DONE) {
             placed = spot;
             return Status.SUCCESS;

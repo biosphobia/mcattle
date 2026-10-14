@@ -4,10 +4,9 @@ import dev.mcattle.control.Navigator;
 import dev.mcattle.control.PathFinder;
 import dev.mcattle.npc.NpcBrain;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 
-/** Stays near a player or NPC until told otherwise. Catches up by teleporting if left very far behind. */
+/** Stays near a player or NPC until told otherwise. Walks (no teleporting), retrying when the way is blocked. */
 public final class FollowTask extends Task {
     private final Target target;
     private final double distance;
@@ -23,15 +22,12 @@ public final class FollowTask extends Task {
     protected Status run(NpcBrain npc) {
         Entity e = target.entity(npc);
         if (e == null || e.isRemoved()) return fail("lost " + target.describe());
-        double dist = e.getWorld() == npc.world() ? npc.npc().distanceTo(e) : Double.MAX_VALUE;
-        if (dist > 96 || failures > 4) {
-            // fell too far behind (or other dimension): catch up like a player using /tp
-            if (ticks % 40 == 0) {
-                npc.npc().teleport((ServerWorld) e.getWorld(), e.getX(), e.getY(), e.getZ(), e.getYaw(), 0);
-                npc.nav().stop();
-                plannedFor = null;
-                failures = 0;
-            }
+        if (e.getWorld() != npc.world()) return fail("can't follow " + target.describe() + " there");
+        double dist = npc.npc().distanceTo(e);
+        if (failures > 4) {
+            // no way through right now: wait a bit, look around, then try again (no teleporting, like a player)
+            npc.move().lookAt(e);
+            if (ticks % 60 == 0) failures = 0;
             return Status.RUNNING;
         }
         if (dist <= distance) {

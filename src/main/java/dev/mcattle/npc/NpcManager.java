@@ -217,6 +217,21 @@ public final class NpcManager {
         return brain;
     }
 
+    /** Strikes the NPC with (harmless, cosmetic) lightning and deletes it for good. */
+    public void smite(NpcBrain brain) {
+        NpcPlayer p = brain.npc();
+        ServerWorld world = p.getServerWorld();
+        net.minecraft.entity.LightningEntity bolt = net.minecraft.entity.EntityType.LIGHTNING_BOLT.create(world);
+        if (bolt != null) {
+            bolt.refreshPositionAfterTeleport(p.getX(), p.getY(), p.getZ());
+            bolt.setCosmetic(true); // no fire, no damage to anything around
+            world.spawnEntity(bolt);
+        }
+        world.spawnParticles(net.minecraft.particle.ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 1, p.getZ(), 40, 0.3, 0.7, 0.3, 0.02);
+        server.getPlayerManager().broadcast(Text.literal(brain.name() + " was smitten").formatted(net.minecraft.util.Formatting.YELLOW), false);
+        remove(brain, true);
+    }
+
     public boolean remove(NpcBrain brain, boolean forget) {
         brain.clearOrders();
         brains.remove(brain.npc().getUuid());
@@ -331,6 +346,25 @@ public final class NpcManager {
             MCattle.LOGGER.info("[NPC chat] <{}> {}", npc.name(), message);
         }
         recordChat(npc.name(), message);
+        speak(npc, message);
+    }
+
+    /** Lets nearby players with the client mod hear the line through text-to-speech. */
+    private void speak(NpcBrain npc, String message) {
+        var speech = config().speech;
+        if (!speech.textToSpeech) return;
+        NpcPlayer body = npc.npc();
+        int seed = body.getUuid().hashCode();
+        for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+            if (p instanceof NpcPlayer || p.getWorld() != body.getWorld() || p.distanceTo(body) > speech.textToSpeechRange) continue;
+            if (!net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(p, dev.mcattle.net.NetIds.SPEAK)) continue;
+            net.minecraft.network.PacketByteBuf buf = net.fabricmc.fabric.api.networking.v1.PacketByteBufs.create();
+            buf.writeVarInt(body.getId());
+            buf.writeInt(seed);
+            buf.writeString(npc.name(), 64);
+            buf.writeString(message.length() > 300 ? message.substring(0, 300) : message, 1024);
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, dev.mcattle.net.NetIds.SPEAK, buf);
+        }
     }
 
     public void recordChat(String who, String message) {

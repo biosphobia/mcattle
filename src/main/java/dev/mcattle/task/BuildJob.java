@@ -371,10 +371,10 @@ public final class BuildJob {
 
     /**
      * Picks the next cell for a builder: obstacles first, then lowest layer, nearest first, only cells that can be
-     * attached to something (unless assisted placement is on and nothing else is left).
+     * attached to something (players can't place blocks in mid-air).
      */
     @Nullable
-    public synchronized Cell claim(ServerWorld world, UUID builder, BlockPos near, boolean assisted) {
+    public synchronized Cell claim(ServerWorld world, UUID builder, BlockPos near) {
         if (!ready) return null;
         refresh(world);
         for (Cell c : cells) if (builder.equals(c.claimedBy) && !c.done && !c.skipped) return c;
@@ -393,11 +393,6 @@ public final class BuildJob {
                 c.claimedBy = builder;
                 return c;
             }
-        }
-        if (assisted && !open.isEmpty()) {
-            Cell c = open.get(0);
-            c.claimedBy = builder;
-            return c;
         }
         return null;
     }

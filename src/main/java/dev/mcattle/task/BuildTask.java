@@ -26,9 +26,9 @@ public final class BuildTask extends Task {
     @Nullable private BuildJob.Cell cell;
     private int cellTicks;
     private boolean navigating;
+    private double approach = InteractionControl.REACH - 0.6;
     private boolean steppingAway;
     private boolean announcedWait;
-    private boolean announcedStart;
     private boolean cleaningUp;
     private int waitTicks;
 
@@ -43,7 +43,6 @@ public final class BuildTask extends Task {
     @Override
     protected Status run(NpcBrain npc) {
         ServerWorld world = npc.world();
-        boolean assisted = npc.config().npc.assistedPlacement;
         if (hasChild()) {
             Status s = tickChild(npc);
             if (s == Status.RUNNING) return Status.RUNNING;
@@ -57,23 +56,26 @@ public final class BuildTask extends Task {
         if (job.isFailed()) return fail("couldn't come up with a design for that");
         if (!job.isReady()) {
             // the design is still being drawn up: hang around the site
-            if (!announcedWait) {
+            // don't stand around: gather wood meanwhile, every build needs some
+            if (!announcedWait && !npc.npc().isCreative()) {
                 announcedWait = true;
-                npc.say(npc.random().nextBoolean() ? "hmm let me plan this out..." : "ok, designing it real quick");
+                var inv = npc.inventory();
+                if (inv.count(s -> s.isIn(dev.mcattle.control.Tags.ITEM_LOGS)) * 4 + inv.count(s -> s.isIn(dev.mcattle.control.Tags.ITEM_PLANKS)) < 32) {
+                    ItemQuery logs = ItemQuery.tag(dev.mcattle.control.Tags.ITEM_LOGS, "logs", Items.OAK_LOG);
+                    setChild(new ChopTask(logs, 6, logs), npc);
+                    return Status.RUNNING;
+                }
             }
             npc.move().lookAt(net.minecraft.util.math.Vec3d.ofCenter(job.anchor()));
             if (++waitTicks > 20 * 150) return fail("took too long to plan the " + job.name());
             return Status.RUNNING;
         }
-        if (!announcedStart && !job.summary().isBlank()) {
-            announcedStart = true;
-            npc.say(job.summary());
-        }
         if (job.isDone()) return cleanup(npc);
 
         if (cell == null || cell.done || cell.skipped) {
-            cell = job.claim(world, npc.npc().getUuid(), npc.npc().getBlockPos(), assisted);
+            cell = job.claim(world, npc.npc().getUuid(), npc.npc().getBlockPos());
             cellTicks = 0;
+            approach = InteractionControl.REACH - 0.6;
             navigating = false;
             if (cell == null) {
                 // others are busy with the remaining blocks: hang around
@@ -119,7 +121,6 @@ public final class BuildTask extends Task {
         ItemQuery item = cell.item();
         if (!npc.npc().isCreative() && npc.inventory().count(item) == 0) {
             int batch = Math.min(64, job.remainingNeed(cell.itemType()));
-            npc.say(npc.random().nextInt(3) == 0 ? "brb, need more " + TaskUtil.pretty(cell.itemType()) : "");
             setChild(new ObtainTask(item, Math.max(1, batch)), npc);
             return Status.RUNNING;
         }
@@ -145,13 +146,15 @@ public final class BuildTask extends Task {
         if (npc.npc().isCreative() && npc.inventory().count(item) == 0) {
             npc.inventory().giveCreative(new net.minecraft.item.ItemStack(cell.itemType(), 64));
         }
-        InteractionControl.Result r = npc.hands().placeBlock(cell.pos, item, assisted && cellTicks > 60);
-        if (r == InteractionControl.Result.DONE) {
-            // players can't always pick the exact orientation by where they stand; set it like a debug stick would
-            BlockState placed = world.getBlockState(cell.pos);
-            if (cell.target != null && placed.isOf(cell.target.getBlock()) && placed != cell.target && cell.target.canPlaceAt(world, cell.pos)) {
-                world.setBlockState(cell.pos, cell.target, net.minecraft.block.Block.NOTIFY_ALL);
+        if (!npc.hands().canPlaceFromHere(cell.pos)) {
+            // no face to click from here (hidden, or facing away): walk up closer and look again
+            if (approach > 2) {
+                approach = 1.8;
+                return Status.RUNNING;
             }
+        }
+        InteractionControl.Result r = npc.hands().placeBlock(cell.pos, item, cell.target);
+        if (r == InteractionControl.Result.DONE) {
             job.finish(cell, true);
             cell = null;
         } else if (cellTicks % 40 == 39) {
@@ -163,7 +166,8 @@ public final class BuildTask extends Task {
 
     /** Returns true when the block is within reach; otherwise keeps navigating. */
     private boolean moveIntoReach(NpcBrain npc, BlockPos pos) {
-        if (npc.hands().inReach(pos) && npc.npc().isOnGround()) {
+        boolean close = npc.npc().getEyePos().squaredDistanceTo(net.minecraft.util.math.Vec3d.ofCenter(pos)) <= (approach + 0.6) * (approach + 0.6);
+        if (npc.hands().inReach(pos) && close && npc.npc().isOnGround()) {
             if (navigating) {
                 npc.nav().stop();
                 navigating = false;
@@ -171,11 +175,14 @@ public final class BuildTask extends Task {
             return true;
         }
         if (!navigating) {
-            npc.nav().navigate(PathFinder.reach(pos, InteractionControl.REACH - 0.6));
+            npc.nav().navigate(PathFinder.reach(pos, approach));
             navigating = true;
         }
         Navigator.State s = npc.nav().tick();
-        if (s == Navigator.State.FAILED || s == Navigator.State.ARRIVED && !npc.hands().inReach(pos)) {
+        if (s == Navigator.State.FAILED && approach < InteractionControl.REACH - 1) {
+            approach = InteractionControl.REACH - 0.6; // couldn't get closer: try from further away
+            navigating = false;
+        } else if (s == Navigator.State.FAILED || s == Navigator.State.ARRIVED && !npc.hands().inReach(pos)) {
             navigating = false;
             if (cell != null) {
                 job.finish(cell, false);

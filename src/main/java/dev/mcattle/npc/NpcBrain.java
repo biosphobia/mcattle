@@ -72,6 +72,12 @@ public final class NpcBrain {
     private int idleTicks;
     private long ticksAlive;
     private int errorCount;
+    /** The player request the current orders serve; kept until done so failures and deaths lead to new tries. */
+    @Nullable private String goal;
+    @Nullable private UUID goalSpeaker;
+    private int goalRetries;
+    private boolean resumeAfterRespawn;
+    private static final int MAX_RETRIES = 3;
 
     public NpcBrain(NpcPlayer npc, NpcIdentity identity, NpcManager manager) {
         this.npc = npc;
@@ -189,6 +195,37 @@ public final class NpcBrain {
         if (speaker.equals(listeningTo)) listeningTo = null;
     }
 
+    // ------------------------------------------------------------------ goal (persistence)
+
+    @Nullable
+    public String goal() {
+        return goal;
+    }
+
+    /** Remembers what the player asked for, so the NPC keeps at it after setbacks. */
+    public void setGoal(@Nullable String text, @Nullable ServerPlayerEntity speaker) {
+        goal = text == null || text.isBlank() ? null : text;
+        goalSpeaker = speaker == null ? null : speaker.getUuid();
+        goalRetries = 0;
+        resumeAfterRespawn = false;
+    }
+
+    public void setGoalRetry() {
+        goalRetries++;
+    }
+
+    public int goalRetries() {
+        return goalRetries;
+    }
+
+    /** Asks the planner for another way to reach the goal. False if that isn't possible (no goal / model / speaker). */
+    private boolean persist(String problem) {
+        if (goal == null || goalSpeaker == null || goalRetries >= MAX_RETRIES) return false;
+        ServerPlayerEntity speaker = server().getPlayerManager().getPlayer(goalSpeaker);
+        if (speaker == null) return false;
+        return manager.mod().router().retry(this, speaker, problem);
+    }
+
     public void setThinking(int ticks) {
         thinkingTicks = ticks;
     }
@@ -293,11 +330,19 @@ public final class NpcBrain {
         planner.onFinished(finished, status);
         if (status == Task.Status.FAILURE && fromPlayer) {
             String reason = finished.failureReason();
-            say(reason != null ? reason : "couldn't " + finished.describe());
+            String problem = reason != null ? reason : "couldn't " + finished.describe();
+            for (Task t : orders) t.stop(this);
             orders.clear(); // the rest of the plan probably depended on this step
-        } else if (status == Task.Status.SUCCESS && fromPlayer && orders.isEmpty() && finished.describe() != null
-                && random.nextInt(3) == 0 && !(finished instanceof dev.mcattle.task.SayTask)) {
-            say(Lines.done(this));
+            // don't give up at the first problem: think of another way (quietly) and keep going
+            if (!persist(problem)) {
+                say(problem);
+                goal = null;
+            }
+        } else if (status == Task.Status.SUCCESS && fromPlayer && orders.isEmpty()) {
+            goal = null; // done
+            if (finished.describe() != null && random.nextInt(3) == 0 && !(finished instanceof dev.mcattle.task.SayTask)) {
+                say(Lines.done(this));
+            }
         }
     }
 
@@ -349,6 +394,7 @@ public final class NpcBrain {
     }
 
     public void onDeath(DamageSource source) {
+        resumeAfterRespawn = goal != null && (current != null || !orders.isEmpty()) && !planner.owns(current);
         clearOrders();
         reflex = null;
         listeningTo = null;
@@ -366,6 +412,11 @@ public final class NpcBrain {
         if (homeWorld == null) homeWorld = server().getOverworld();
         BlockPos h = home();
         npc.teleport(homeWorld, h.getX() + 0.5, h.getY(), h.getZ() + 0.5, npc.getYaw(), 0);
+        if (resumeAfterRespawn) {
+            resumeAfterRespawn = false;
+            // pick the job back up (inventory was probably lost)
+            if (!persist("died and respawned at home, inventory may be gone")) goal = null;
+        }
     }
 
     public void logError(String where, Exception e) {

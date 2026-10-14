@@ -32,8 +32,8 @@ public final class MCattleConfig {
         public String anthropicBanterModel = "claude-opus-5-5";
         /** Reasoning effort for command interpretation: low / medium / high. */
         public String effort = "low";
-        /** Reasoning effort for free-form build designs (bigger, more creative calls). */
-        public String designEffort = "medium";
+        /** Reasoning effort for free-form build designs: low keeps NPCs from standing around planning. */
+        public String designEffort = "low";
         /** Largest design accepted, in blocks. */
         public int maxDesignBlocks = 2500;
         /** An activity (game, party...) ends after this many director rounds or minutes. */
@@ -71,6 +71,13 @@ public final class MCattleConfig {
         public String language = "en";
         /** Max seconds of audio accepted per utterance. */
         public int maxSeconds = 20;
+        /**
+         * Send what NPCs say to nearby players who have MCattle on their client, so it is read aloud there
+         * (voice and engine are chosen in each player's config/mcattle-client.json).
+         */
+        public boolean textToSpeech = true;
+        /** Players further away than this don't hear NPCs speak (text chat is unaffected). */
+        public int textToSpeechRange = 48;
     }
 
     public static final class Npc {
@@ -87,8 +94,6 @@ public final class MCattleConfig {
         public boolean persist = true;
         /** NPCs may see ores through walls. Off = they must find or dig to them like a player. */
         public boolean allowXray = false;
-        /** Place blocks even when nothing is adjacent to click against (players would use scaffolding). */
-        public boolean assistedPlacement = true;
         /** NPCs fight back when a player hits them without having asked for a fight. */
         public boolean retaliate = true;
         /** Autonomous NPCs only break natural blocks (logs, stone, dirt, ores...) never player builds. */

@@ -111,7 +111,6 @@ public final class AutonomousPlanner {
             BuildJob job = dev.mcattle.ai.BuildFactory.start(npc, "a small cozy survival starter house for one, made of what's easy to get around here",
                     "small", home, Direction.fromRotation(npc.random().nextInt(4) * 90), false);
             builtHome = true; // try once per session
-            npc.say("gonna build myself a little house");
             return own("home", new BuildTask(job));
         }
         if (pickTier < 2 && (t = obtain("iron_pickaxe", Items.IRON_PICKAXE)) != null) return t;

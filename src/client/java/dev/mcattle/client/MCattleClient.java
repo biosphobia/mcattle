@@ -4,7 +4,9 @@ import dev.mcattle.net.NetIds;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
@@ -20,11 +22,12 @@ import java.util.Arrays;
 /**
  * Optional client half: hold the push-to-talk key (default B) to talk to NPCs. While held a microphone badge
  * shows on screen and nearby NPCs stop to listen; on release the audio goes to the server for transcription.
- * Only active on servers that run MCattle.
+ * NPC chat is read aloud with text-to-speech (see config/mcattle-client.json). Only active on servers that run MCattle.
  */
 public final class MCattleClient implements ClientModInitializer {
     private static KeyBinding pushToTalk;
     private final MicRecorder mic = new MicRecorder();
+    private TextToSpeech tts;
     private String status = "";
     private long statusUntil;
     private long recordingSince;
@@ -39,6 +42,15 @@ public final class MCattleClient implements ClientModInitializer {
             String text = buf.readString(256);
             client.execute(() -> setStatus(text, 4000));
         });
+        tts = new TextToSpeech(TtsConfig.load(FabricLoader.getInstance().getConfigDir().resolve("mcattle-client.json")));
+        ClientPlayNetworking.registerGlobalReceiver(NetIds.SPEAK, (client, handler, buf, sender) -> {
+            int entityId = buf.readVarInt();
+            int seed = buf.readInt();
+            String name = buf.readString(64);
+            String text = buf.readString(1024);
+            client.execute(() -> tts.speak(entityId, seed, name, text));
+        });
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(tts::stopAll));
     }
 
     private boolean serverSupportsVoice() {
@@ -46,6 +58,7 @@ public final class MCattleClient implements ClientModInitializer {
     }
 
     private void tick(MinecraftClient client) {
+        tts.tick(client);
         if (client.player == null || client.getNetworkHandler() == null) {
             if (mic.isRecording()) mic.stop();
             return;

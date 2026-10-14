@@ -41,7 +41,7 @@ public final class AnthropicProvider implements LlmProvider {
         this.model = model;
         this.banterModel = banterModel;
         this.effort = effort == null || effort.isBlank() ? "low" : effort.trim().toLowerCase(java.util.Locale.ROOT);
-        this.designEffort = designEffort == null || designEffort.isBlank() ? "medium" : designEffort.trim().toLowerCase(java.util.Locale.ROOT);
+        this.designEffort = designEffort == null || designEffort.isBlank() ? "low" : designEffort.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     @Override

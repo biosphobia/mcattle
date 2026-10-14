@@ -10,9 +10,13 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
 
 ## What the NPCs do
 
-- **Act like players.** They use real player mechanics: walking, sprinting, jumping, swimming, ladders,
-  doors, mining with crack animations and tool tiers, placing blocks against faces, eating, sleeping in beds,
-  crafting, using furnaces and chests, and picking up drops. Pathfinding is A* with player moves (step up,
+- **Act like players, within player limits.** They use real player mechanics: walking, sprinting, jumping,
+  swimming, ladders, doors, mining with crack animations and tool tiers, eating, sleeping in beds, crafting,
+  using furnaces and chests, and picking up drops. They have survival reach (4.5 blocks for blocks, 3 for
+  hits) and need line of sight: a hidden ore is dug toward, not mined through walls. Blocks are placed by
+  clicking a visible face of a neighbouring block, never in mid-air, and they turn the way a player would to
+  get stairs, slabs and logs facing right. Mining takes as long as it would for you with the same tool, hits
+  respect the attack cooldown, and they never teleport. Pathfinding is A* with player moves (step up,
   drop, swim, climb, dig through natural blocks, pillar up, bridge across gaps), spread over several ticks.
 - **Play on their own.** With no orders they follow the classic progression: wood, wooden then stone tools,
   food, a little hut, iron tools, shield, iron armor, a bed, diamonds. In between they explore, chop, mine coal
@@ -38,6 +42,13 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
   you; if not, it chops a tree first. `obtain` works out the whole chain: iron pickaxe means logs, planks,
   sticks, a crafting table, a wooden pickaxe, cobblestone, a stone pickaxe, finding iron (or digging down to
   y=16 and branch-mining), a furnace, fuel, smelting, then crafting.
+- **Get on with it.** No narrating plans in chat: they answer briefly (or not at all) and start working.
+  While a build design is being drawn up, they go chop wood for it.
+- **Keep at it.** NPCs remember what you asked for until it's done. If a step fails (no trees nearby, a path
+  is blocked) or they die, they quietly ask for another way and carry on, up to 3 times, and only then
+  tell you what went wrong.
+- **Talk out loud.** On clients with the mod, NPC chat is read aloud with text-to-speech. Each NPC keeps its
+  own voice, and lines get quieter with distance and pan to the side the NPC is on.
 - **Work as a team.** With no name in the message, every NPC in range takes the order. One language-model call
   plans for all of them at once, with each NPC's current task in view, so they split work, help each other
   (`help CobbleMaya`) or compete when you ask for a race.
@@ -89,7 +100,7 @@ Server (required): Fabric Loader 0.16+ for 1.20.1 and `mcattle-<version>.jar` in
 standalone and bundles the parts of Fabric API it needs (having the full Fabric API installed as well is fine).
 Clients can join **without** the mod and still use text commands.
 
-Clients (optional): put the same jar in your `mods/` for push-to-talk. Bind *"Talk to NPCs (push to talk)"*
+Clients (optional): put the same jar in your `mods/` for push-to-talk and to hear NPCs speak. Bind *"Talk to NPCs (push to talk)"*
 (default **B**) under Controls. While you hold it, a mic badge with a level meter appears and nearby NPCs stop
 and turn to listen.
 
@@ -106,7 +117,7 @@ Created on first start. The most important fields:
     "anthropicApiKey": "",              // or set the ANTHROPIC_API_KEY environment variable
     "anthropicModel": "claude-opus-5-5",
     "effort": "low",
-    "designEffort": "medium",           // build designs get more thought
+    "designEffort": "low",              // keep design calls quick so NPCs aren't left waiting
     "maxDesignBlocks": 2500,
     "activityMaxRounds": 40, "activityMaxMinutes": 30,
     "maxRequestsPerMinute": 12,
@@ -119,11 +130,13 @@ Created on first start. The most important fields:
     "enabled": true,
     "endpoint": "http://127.0.0.1:8080/v1/audio/transcriptions",
     "model": "whisper-1",
-    "language": "en"
+    "language": "en",
+    "textToSpeech": true,               // send NPC lines to clients with the mod to be read aloud
+    "textToSpeechRange": 48
   },
   "npc": {
     "maxNpcs": 8, "hearingRange": 32, "voiceRange": 64,
-    "allowXray": false, "assistedPlacement": true, "retaliate": true, "protectBuilds": true,
+    "allowXray": false, "retaliate": true, "protectBuilds": true,
     "chatRange": -1, "socialness": 1.0,
     "skinPresets": { "steve": "steve", "alex": "alex", "herobrine": "account:MHF_Herobrine", "...": "..." }
   }
@@ -148,6 +161,28 @@ need a name: everyone within `voiceRange` takes the order.
 
 macOS: the Minecraft launcher needs microphone permission (System Settings → Privacy & Security → Microphone).
 
+### Text-to-speech (client)
+
+Each player with the mod picks how NPCs sound in `config/mcattle-client.json` (created on first launch):
+
+```jsonc
+{
+  "enabled": true,
+  "engine": "system",       // "system" (free, offline), "http" (OpenAI-compatible /v1/audio/speech) or "off"
+  "volume": 1.0,            // also follows Minecraft's Master and Players sliders
+  "maxDistance": 48,
+  "httpEndpoint": "https://api.openai.com/v1/audio/speech",
+  "httpApiKey": "",
+  "httpModel": "tts-1",
+  "httpVoices": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+}
+```
+
+`system` uses the voices built into the OS: Windows speech (via PowerShell), `say` on macOS, `espeak-ng` or
+`espeak` on Linux (install one of those first). For more natural voices, point `http` at OpenAI or at a
+local server such as [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI)
+(`http://127.0.0.1:8880/v1/audio/speech`, model `kokoro`, voices like `af_bella`, `am_adam`).
+
 ## Talking to NPCs
 
 Say an NPC's name (the full name or just the "real name" half: `maya` for `CobbleMaya`) in chat, or `everyone`
@@ -169,7 +204,8 @@ Examples:
 | Command | |
 |---|---|
 | `/npc spawn [name\|random] [skin]` | Spawns an NPC. Skins: `steve`, `alex`, `herobrine`, `villager`, `zombie`, `skeleton`, `creeper`, `enderman`, `pigman`, `golem`, `blaze`, `witherskeleton`, `random`, or `account:<username>` for any player's skin. Random names look like `CobbleMaya` or `CreeperJack` (about 22,000 combinations). |
-| `/npc remove <npc\|all>` | Owner or op only |
+| `/npc smite [npc\|all]` | Strikes NPCs with (harmless) lightning and deletes them. No argument = all of yours. Owner or op only. |
+| `/npc remove <npc\|all>` | Same as smite |
 | `/npc list` | Health, position and current activity |
 | `/npc tell <npc\|all> <message>` | Talk without chat |
 | `/npc stop <npc\|all>` / `/npc free <npc\|all>` | Stand still / go back to free play |
@@ -202,14 +238,13 @@ NpcPlayer ── a real ServerPlayerEntity with a fake connection (Carpet-style)
 
 Key packages: `dev.mcattle.core` (Minecraft-independent: parser, LLM clients, blueprints, names, speech),
 `control` (movement, pathfinding, block and inventory handling, knowledge base), `task` (skills),
-`npc` (entity, brain, manager), `ai` (routing, situation reports, banter), `client` (push-to-talk).
+`npc` (entity, brain, manager), `ai` (routing, situation reports, banter), `client` (push-to-talk, text-to-speech).
 
 ## Limitations
 
 - The Minecraft-facing code has not been compiled or run yet (see Status).
 - Skins are copied from existing Minecraft accounts, because vanilla clients only render Mojang-signed
   textures. The server needs internet access the first time each skin is fetched.
-- NPCs don't use portals by themselves. If they're left far behind or in another dimension while following
-  you, they catch up by teleporting.
+- NPCs don't use portals by themselves, so they can't follow you into another dimension.
 - Free-form designs depend on the model's spatial skill. Ambitious requests can come out quirky, which fits
-  the spirit of the mod. Exact block orientations are applied after placement, the way a debug stick would.
+  the spirit of the mod. If no spot gives a block the exact orientation the design wants, it is placed the closest way a player could.

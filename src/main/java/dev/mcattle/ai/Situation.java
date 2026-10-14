@@ -66,6 +66,15 @@ public final class Situation {
         return sb.toString();
     }
 
+    /** Report for picking a task back up after a step failed or the NPC died: same as a command, plus what went wrong. */
+    public static String forRetry(NpcManager manager, ServerPlayerEntity speaker, NpcBrain npc, String problem, int attempt) {
+        return "PERSIST: " + npc.name() + " is still working on an earlier request from " + speaker.getName().getString()
+                + " (attempt " + (attempt + 1) + "). What went wrong: " + problem + ". Get it done another way (other "
+                + "material, another spot, get what's missing first...). Only " + npc.name() + " needs an order; "
+                + "keep \"say\" empty unless the player really needs to know something.\n"
+                + forCommand(manager, speaker, npc.goal() == null ? "" : npc.goal(), false, List.of(npc), false);
+    }
+
     public static String forBanter(NpcManager manager, List<NpcBrain> npcs, List<ServerPlayerEntity> players) {
         StringBuilder sb = new StringBuilder(600);
         NpcBrain first = npcs.get(0);
@@ -190,6 +199,7 @@ public final class Situation {
                 .append(", hp ").append((int) Math.ceil(p.getHealth())).append(", food ").append(p.getHungerManager().getFoodLevel());
         if (p.isCreative()) sb.append(", creative");
         sb.append("\n  doing: ").append(npc.activity()).append("\n");
+        if (npc.goal() != null) sb.append("  working toward: \"").append(npc.goal().replace('"', '\'')).append("\"\n");
         if (detailed) {
             sb.append("  inventory: ").append(npc.inventorySummary(18)).append("\n");
             sb.append("  around: ").append(surroundings(npc)).append("\n");

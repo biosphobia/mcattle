@@ -18,5 +18,8 @@ public final class NetIds {
     /** S2C: status line for the push-to-talk HUD (e.g. "transcribing...", "heard: ..."). */
     public static final Identifier VOICE_STATUS = new Identifier("mcattle", "voice_status");
 
+    /** S2C: an NPC said something; clients with text-to-speech read it aloud: varint entity id, int voice seed, string name, string text. */
+    public static final Identifier SPEAK = new Identifier("mcattle", "speak");
+
     public static final int MAX_CHUNK = 30_000;
 }

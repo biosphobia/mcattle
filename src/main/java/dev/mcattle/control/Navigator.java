@@ -216,7 +216,7 @@ public final class Navigator {
                             fail();
                             return;
                         }
-                        if (hands.placeBlock(placeAt, InventoryControl::isScaffold, false) == InteractionControl.Result.DONE) {
+                        if (hands.placeBlock(placeAt, InventoryControl::isScaffold) == InteractionControl.Result.DONE) {
                             placedScaffold.add(placeAt.toImmutable());
                         }
                     }
@@ -229,11 +229,12 @@ public final class Navigator {
             case BRIDGE -> {
                 BlockPos placeAt = step.placeAt();
                 if (placeAt != null && world.getBlockState(placeAt).isReplaceable()) {
-                    // stand at the edge, sneak so we don't fall, place against the block we stand on
+                    // sneak out over the edge (sneaking stops the fall) until the side of the block we stand on
+                    // is in view, then place against it
                     move.sneak();
                     BlockPos standing = feet.down();
                     Direction toward = Direction.getFacing(target.getX() - feet.getX(), 0, target.getZ() - feet.getZ());
-                    Vec3d edge = Vec3d.ofBottomCenter(feet).add(toward.getOffsetX() * 0.35, 0, toward.getOffsetZ() * 0.35);
+                    Vec3d edge = Vec3d.ofBottomCenter(feet).add(toward.getOffsetX() * 0.8, 0, toward.getOffsetZ() * 0.8);
                     double ex = edge.x - npc.getX(), ez = edge.z - npc.getZ();
                     if (ex * ex + ez * ez > 0.04) move.moveTo(edge, false);
                     if (!inventory.selectScaffold()) {
@@ -241,7 +242,7 @@ public final class Navigator {
                         return;
                     }
                     move.lookAt(Vec3d.ofCenter(placeAt));
-                    if (hands.placeBlock(placeAt, InventoryControl::isScaffold, false) == InteractionControl.Result.DONE) {
+                    if (hands.placeBlock(placeAt, InventoryControl::isScaffold) == InteractionControl.Result.DONE) {
                         placedScaffold.add(placeAt.toImmutable());
                     } else if (stepTicks > 60) {
                         replan(target);
