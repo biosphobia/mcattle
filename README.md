@@ -53,6 +53,35 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
   plans for all of them at once, with each NPC's current task in view, so they split work, help each other
   (`help CobbleMaya`) or compete when you ask for a race.
 
+## Feelings and relationships
+
+Every NPC has an inner life that persists across restarts:
+
+- **Emotions.** A mood built from the eight primary emotions (joy, sadness, anger, fear, trust, disgust,
+  surprise, anticipation). Their blends cover the rest: love, jealousy, pride, guilt, embarrassment,
+  loneliness, awe and so on. Moods flare up and settle over minutes. Each NPC has its own temperament
+  (short-tempered or hard to anger, sensitive, brave or easily scared, forgiving or grudge-holding, warm,
+  upbeat or moody), so the same thing affects two NPCs differently.
+- **Relationships** with every player and every other NPC: like, trust, respect, fear and familiarity, a label
+  (stranger, pal, best friend, rival, enemy, nemesis...), a one-line bond the AI keeps up to date ("frenemies
+  since the diamond incident"), and memories of what they did: "gave me 3 diamonds", "hit me (x4)", "saved
+  me from a zombie", "killed someone i care about (CobbleMaya)". Strong bonds are hard to move. Grudges
+  and fear fade over real-time days. Trust comes back slower than liking.
+- **What changes them.** Hits and kills, being beaten in a fight, gifts (throw an item to an NPC: diamonds
+  count more than dirt), rescues (kill the mob that's attacking it), working, playing and spending time
+  together, being alone for too long, and the tone of what you say. Claude judges insults, praise, apologies,
+  teasing, threats, flirting and betrayal in context, and the built-in parser guesses when Claude isn't used.
+  NPCs also take it personally when someone hurts or kills an NPC they care about.
+- **What they change.** Speech: the AI sees the mood and the relationship with whoever is involved, so friends
+  get warmth and inside jokes, and someone who wronged an NPC gets coldness, sarcasm or demands for an apology.
+  Canned lines change too ("{player}?? i thought we were friends", "oh. it's you"). Behavior: warmer and more
+  frequent greetings for friends and cold stares for enemies. They seek out friends to hang out with and
+  bring them gifts. They keep away from people they fear. A friend gets a pass for the first hit, but someone
+  hated can get jumped when the NPC is angry enough. A sad NPC sulks and an ecstatic one dances. They may
+  refuse orders from someone they resent ("maybe if you apologized first"). Emotion particles show it too:
+  angry puffs, tears, sparkles, hearts near favourite people.
+- `/npc feelings <npc>` shows the mood, temperament and relationships.
+
 ## Memory
 
 Each NPC keeps a long-term memory that survives restarts:
@@ -212,6 +241,7 @@ Examples:
 | `/npc inventory <npc>` | Opens the NPC's inventory as a chest (give or take items) |
 | `/npc tphere <npc>` | Teleports the NPC to you |
 | `/npc gamemode <npc> survival\|creative` | Op only. Creative NPCs build instantly, without gathering. |
+| `/npc feelings <npc>` | Mood, temperament and relationships (with memories of what people did) |
 | `/npc memory <npc>` | What it remembers (instructions, facts, settings) |
 | `/npc remember <npc> <text>` · `/npc forget <npc> <n\|text\|all>` | Edit its memory by hand |
 | `/npc usage` | Language-model token usage |

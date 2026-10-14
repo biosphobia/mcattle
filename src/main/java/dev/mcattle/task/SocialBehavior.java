@@ -54,12 +54,21 @@ public final class SocialBehavior {
             focus = p;
             double roll = npc.random().nextDouble();
             boolean isNpc = p instanceof NpcPlayer;
-            if (roll < 0.25 * socialness) {
+            double like = npc.social().affinity(p);
+            if (like < -30) {
+                // someone it's upset with: a long cold stare, maybe a remark, no friendly hello
+                glanceTicks = 40 + npc.random().nextInt(40);
+                if (npc.random().nextInt(3) == 0) npc.say(Lines.greeting(npc, p.getName().getString()));
+                return;
+            }
+            // friends get greeted more often and more warmly
+            double warmth = 1 + Math.max(0, like) / 50;
+            if (roll < 0.25 * socialness * warmth) {
                 // the classic crouch-spam hello (only when not busy)
                 crouchGreeting = idle;
                 gestureTicks = idle ? 24 : 0;
                 glanceTicks = idle ? 0 : 15;
-                if (!isNpc && npc.random().nextInt(3) == 0) npc.say(Lines.greeting(npc, p.getName().getString()));
+                if ((!isNpc || like > 40) && npc.random().nextInt(like > 40 ? 2 : 3) == 0) npc.say(Lines.greeting(npc, p.getName().getString()));
             } else if (roll < 0.6 * socialness) {
                 glanceTicks = 25 + npc.random().nextInt(30); // just look over
             }

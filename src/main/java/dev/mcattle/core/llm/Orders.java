@@ -26,10 +26,18 @@ public record Orders(
             @JsonPropertyDescription("Existing memories to delete, quoted exactly or by a distinctive phrase. Empty list if none.")
             List<String> forget,
             @JsonPropertyDescription("Behavior settings to change, space separated key=value: socialness=0|1|2 retaliate=true|false autonomous=true|false follow=<player>|none guard=<player>|none home=here|none nickname=<word>|none chatty=0|1|2. Empty if none.")
-            String settings) {
+            String settings,
+            @JsonPropertyDescription("How this makes the NPC feel, space separated who:feeling[:strength 1-3] tokens. who = a player/NPC name or 'self'; feeling = an event (insulted, praised, thanked, teased, apologized, threatened, betrayed, flirted, helped, gift, played_with, bossed_around, ignored) or any emotion word (jealous, grateful, embarrassed, lonely, proud, smitten...). Empty if nothing notable.")
+            String feel,
+            @JsonPropertyDescription("Update how the NPC sums up a relationship when it meaningfully changes: 'Name=short description; Name2=...'. Empty if unchanged.")
+            String bond) {
 
         public NpcOrder(String npc, String say, String mode, List<Step> steps) {
-            this(npc, say, mode, steps, List.of(), List.of(), "");
+            this(npc, say, mode, steps, List.of(), List.of(), "", "", "");
+        }
+
+        public NpcOrder(String npc, String say, String mode, List<Step> steps, List<String> remember, List<String> forget, String settings) {
+            this(npc, say, mode, steps, remember, forget, settings, "", "");
         }
     }
 

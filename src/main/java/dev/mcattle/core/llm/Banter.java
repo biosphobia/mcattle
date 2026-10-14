@@ -10,6 +10,8 @@ public record Banter(List<Line> lines) {
             @JsonPropertyDescription("Exact NPC name of the speaker")
             String npc,
             @JsonPropertyDescription("The chat line")
-            String text) {
+            String text,
+            @JsonPropertyDescription("How saying/hearing this leaves the speaker feeling: who:feeling[:strength] tokens (who = a name or 'self'), e.g. 'OakJames:teased self:amused'. Empty if nothing notable.")
+            String feel) {
     }
 }

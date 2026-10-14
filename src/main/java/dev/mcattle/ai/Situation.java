@@ -86,6 +86,10 @@ public final class Situation {
                     .append(", doing: ").append(npc.activity()).append("\n");
             String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
             if (!longTerm.isEmpty()) sb.append("  memory (follow it): ").append(longTerm).append("\n");
+            List<Entity> others = new java.util.ArrayList<>();
+            for (NpcBrain o : npcs) if (o != npc) others.add(o.npc());
+            others.addAll(players);
+            sb.append(npc.social().report(others, 1));
         }
         if (!players.isEmpty()) {
             sb.append("Human players nearby: ").append(String.join(", ", players.stream().map(p -> p.getName().getString()).toList())).append("\n");
@@ -116,6 +120,11 @@ public final class Situation {
                     .append(", ").append(t == null || t.idle() ? "idle" : t.describe()).append("\n  inventory: ").append(npc.inventorySummary(12)).append("\n");
             String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
             if (!longTerm.isEmpty()) sb.append("  memory (follow it): ").append(longTerm).append("\n");
+            List<Entity> others = new java.util.ArrayList<>();
+            for (NpcBrain o : session.participants) if (o != npc) others.add(o.npc());
+            ServerPlayerEntity host = session.host();
+            if (host != null) others.add(host);
+            sb.append(npc.social().report(others, 0));
         }
         if (world != null) {
             for (ServerPlayerEntity p : world.getPlayers()) {
@@ -207,8 +216,21 @@ public final class Situation {
             if (!memory.isEmpty()) sb.append("  recently: ").append(String.join(" / ", memory)).append("\n");
             String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
             if (!longTerm.isEmpty()) sb.append("  long-term memory (follow it): ").append(longTerm).append("\n");
+            sb.append(npc.social().report(relevantTo(npc, reference), 3));
+        } else {
+            sb.append("  mood: ").append(npc.social().brief(reference)).append("\n");
         }
         return sb.toString();
+    }
+
+    /** The speaker plus players and NPCs close enough to matter for how this NPC reacts. */
+    static List<Entity> relevantTo(NpcBrain npc, Entity reference) {
+        List<Entity> list = new java.util.ArrayList<>();
+        if (reference != null && reference != npc.npc()) list.add(reference);
+        for (ServerPlayerEntity p : npc.nearbyPlayers(24, true)) {
+            if (p != reference && list.size() < 6) list.add(p);
+        }
+        return list;
     }
 
     /** What the NPC can see around it, summarized: trees, ores, water, useful blocks, mobs. */

@@ -55,6 +55,7 @@ public final class NpcBrain {
     private final InteractionControl hands;
     private final Navigator nav;
     private final SocialBehavior social;
+    private final NpcSocial feelings;
     private final AutonomousPlanner planner;
     private final Random random = new Random();
 
@@ -88,6 +89,7 @@ public final class NpcBrain {
         this.hands = new InteractionControl(npc, move, inventory);
         this.nav = new Navigator(npc, move, hands, inventory);
         this.social = new SocialBehavior(this);
+        this.feelings = new NpcSocial(this);
         this.planner = new AutonomousPlanner(this);
         this.autonomous = identity.autonomous;
     }
@@ -102,6 +104,8 @@ public final class NpcBrain {
     public InteractionControl hands() { return hands; }
     public Navigator nav() { return nav; }
     public Random random() { return random; }
+    /** Emotions and relationships. */
+    public NpcSocial social() { return feelings; }
     public String name() { return identity.name; }
     public MCattleConfig config() { return manager.config(); }
     public MinecraftServer server() { return npc.getServer(); }
@@ -289,6 +293,7 @@ public final class NpcBrain {
         if (thinkingTicks > 0) thinkingTicks--;
 
         try {
+            feelings.tick();
             checkReflexes();
             if (reflex != null) {
                 Task.Status s = reflex.tick(this);
@@ -331,6 +336,7 @@ public final class NpcBrain {
         if (status == Task.Status.FAILURE && fromPlayer) {
             String reason = finished.failureReason();
             String problem = reason != null ? reason : "couldn't " + finished.describe();
+            feelings.mind().feel("frustrated", 0.5);
             for (Task t : orders) t.stop(this);
             orders.clear(); // the rest of the plan probably depended on this step
             // don't give up at the first problem: think of another way (quietly) and keep going
@@ -340,6 +346,9 @@ public final class NpcBrain {
             }
         } else if (status == Task.Status.SUCCESS && fromPlayer && orders.isEmpty()) {
             goal = null; // done
+            feelings.mind().feel("proud", 0.4);
+            ServerPlayerEntity asker = lastSpeaker();
+            if (asker != null && asker.distanceTo(npc) < 32) feelings.event(dev.mcattle.core.social.SocialEvent.WORKED_TOGETHER, asker, 1, null);
             if (finished.describe() != null && random.nextInt(3) == 0 && !(finished instanceof dev.mcattle.task.SayTask)) {
                 say(Lines.done(this));
             }
@@ -348,6 +357,14 @@ public final class NpcBrain {
 
     private void checkReflexes() {
         if (reflex != null) return;
+        // strong feelings (fear of someone, a grudge) take over unless busy with something a player asked for
+        if (current == null || planner.owns(current) || current.isOpenEnded()) {
+            Task impulse = feelings.impulse();
+            if (impulse != null) {
+                startReflex(impulse);
+                return;
+            }
+        }
         // lava / fire: get out first, everything else later
         if (npc.isInLava() || (npc.isOnFire() && !npc.isTouchingWater() && npc.getHealth() < 14)) {
             startReflex(new FleeTask(null, 6, 60, "lava"));
@@ -377,6 +394,7 @@ public final class NpcBrain {
     public void onHurt(DamageSource source, float amount) {
         Entity attacker = source.getAttacker();
         if (!(attacker instanceof LivingEntity living) || attacker == npc || !npc.isAlive()) return;
+        feelings.onHurt(attacker, amount, isRequestedFight(attacker));
         if (current instanceof AttackTask at && at.isTargeting(attacker)) return;
         if (reflex instanceof AttackTask at && at.isTargeting(attacker)) return;
         if (attacker instanceof Monster) {
@@ -389,11 +407,27 @@ public final class NpcBrain {
                 && (identity.retaliate != null ? identity.retaliate : config().npc.retaliate)) {
             if (manager.byUuid(player.getUuid()) != null && current instanceof AttackTask) return; // NPC brawl in progress
             say(Lines.hit(this, player.getName().getString()));
-            startReflex(new AttackTask(Target.of(attacker), false, 12, true));
+            var rel = feelings.mind().relation(NpcSocial.key(player));
+            double fear = rel == null ? 0 : rel.fear;
+            if (fear > 60 && npc.getHealth() < 14) {
+                startReflex(new FleeTask(attacker, 14, 100, "scared"));          // too afraid of them to fight back
+            } else if (rel == null || rel.affinity < 50 || rel.hits >= 3) {
+                startReflex(new AttackTask(Target.of(attacker), false, 12, true)); // a friend gets a pass, at first
+            }
         }
     }
 
+    /** True while fighting this entity because a player asked for it (a spar or a duel, not an attack out of the blue). */
+    private boolean isRequestedFight(Entity other) {
+        if (current instanceof AttackTask at && at.isTargeting(other) && !planner.owns(current)) return true;
+        return other instanceof NpcPlayer o && o.brain() != null && o.brain().current instanceof AttackTask at2 && at2.isTargeting(npc)
+                && !o.brain().planner.owns(o.brain().current);
+    }
+
     public void onDeath(DamageSource source) {
+        Entity killer = source.getAttacker();
+        if (killer != null) feelings.onDeath(killer, isRequestedFight(killer));
+        else feelings.onDeath(null, false);
         resumeAfterRespawn = goal != null && (current != null || !orders.isEmpty()) && !planner.owns(current);
         clearOrders();
         reflex = null;

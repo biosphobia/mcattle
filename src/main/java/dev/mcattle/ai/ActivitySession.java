@@ -112,6 +112,16 @@ public final class ActivitySession {
         if (ended) return;
         ended = true;
         MCattle.LOGGER.info("Activity '{}' ended: {}", goal, reason);
+        // shared fun brings people closer
+        if (round > 0) {
+            ServerPlayerEntity h = host();
+            for (NpcBrain npc : participants) {
+                if (h != null) npc.social().event(dev.mcattle.core.social.SocialEvent.PLAYED_WITH, h, 1, null);
+                for (NpcBrain other : participants) {
+                    if (other != npc) npc.social().event(dev.mcattle.core.social.SocialEvent.PLAYED_WITH, other.npc(), 0.7, null);
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------------------ main loop
@@ -207,6 +217,8 @@ public final class ActivitySession {
                 if (!built.problems().isEmpty()) event(npc.name() + ": " + String.join("; ", built.problems()));
                 task.assign(built.tasks(), !"append".equalsIgnoreCase(order.mode()));
                 dev.mcattle.npc.NpcMemory.apply(npc, order.remember(), order.forget(), order.settings(), speaker);
+                npc.social().applyFeel(order.feel(), speaker);
+                npc.social().applyBonds(order.bond(), speaker);
             }
         }
         String wf = turn.waitFor() == null ? "steps" : turn.waitFor().toLowerCase(Locale.ROOT).trim();

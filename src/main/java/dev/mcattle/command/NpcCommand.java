@@ -101,6 +101,17 @@ public final class NpcCommand {
                 .then(literal("memory")
                         .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
                                 .executes(ctx -> memory(ctx, mod, StringArgumentType.getString(ctx, "npc")))))
+                .then(literal("feelings")
+                        .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
+                                .executes(ctx -> {
+                                    for (NpcBrain b : select(ctx, mod, StringArgumentType.getString(ctx, "npc"))) {
+                                        ctx.getSource().sendFeedback(() -> Text.literal(b.name()).formatted(Formatting.GOLD), false);
+                                        for (String line : b.social().describeAll()) {
+                                            ctx.getSource().sendFeedback(() -> Text.literal("  " + line), false);
+                                        }
+                                    }
+                                    return 1;
+                                })))
                 .then(literal("remember")
                         .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
                                 .then(argument("text", StringArgumentType.greedyString())

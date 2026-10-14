@@ -66,6 +66,13 @@ public final class BanterService {
             for (NpcBrain b : speakers) {
                 if (b.name().equalsIgnoreCase(line.npc())) {
                     b.say(line.text());
+                    b.social().applyFeel(line.feel(), null);
+                    // whoever was talked to (or about) gets a bit more familiar with the speaker
+                    for (NpcBrain other : speakers) {
+                        if (other != b && line.text().toLowerCase(java.util.Locale.ROOT).contains(other.name().toLowerCase(java.util.Locale.ROOT))) {
+                            other.social().event(dev.mcattle.core.social.SocialEvent.TEASED, b.npc(), 0.3, null);
+                        }
+                    }
                     break;
                 }
             }

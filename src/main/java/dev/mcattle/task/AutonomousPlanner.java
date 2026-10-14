@@ -61,6 +61,20 @@ public final class AutonomousPlanner {
         return task;
     }
 
+    /** Something nice it can spare: a flower, a spare cooked meal, or a gem it has plenty of. */
+    @Nullable
+    private ItemStack spareGift() {
+        for (ItemStack s : npc.npc().getInventory().main) {
+            if (s.isEmpty()) continue;
+            String id = net.minecraft.registry.Registries.ITEM.getId(s.getItem()).getPath();
+            boolean nice = id.contains("flower") || id.equals("poppy") || id.equals("dandelion") || id.contains("tulip")
+                    || id.equals("cake") || id.equals("cookie") || (s.isFood() && s.getCount() >= 6)
+                    || ((id.equals("diamond") || id.equals("emerald") || id.equals("gold_ingot")) && s.getCount() >= 4);
+            if (nice) return s;
+        }
+        return null;
+    }
+
     @Nullable
     public Task next() {
         InventoryControl inv = npc.inventory();
@@ -89,6 +103,35 @@ public final class AutonomousPlanner {
         if (id.follow != null) {
             var p = npc.server().getPlayerManager().getPlayer(id.follow);
             if (p != null) return own("follow", new TimedTask(new FollowTask(Target.of(p), 3), 20 * 60 * 5, "following " + p.getName().getString()));
+        }
+
+        // feelings: seek out friends, sometimes bring them something
+        var social = npc.social();
+        if (!night && ready("friend") && npc.random().nextInt(4) == 0) {
+            var friend = social.friendNearby(48);
+            if (friend != null) {
+                cooldownUntil.put("friend", npc.age() + 20L * 60 * (3 + npc.random().nextInt(5)));
+                String name = friend.getName().getString();
+                if (social.affinity(friend) > 55 && ready("gift") && npc.random().nextInt(3) == 0) {
+                    ItemStack spare = spareGift();
+                    if (spare != null) {
+                        cooldownUntil.put("gift", npc.age() + 20L * 60 * 15);
+                        npc.say(dev.mcattle.npc.Lines.gift(npc, name));
+                        return own("gift", new GiveTask(Target.of(friend), ItemQuery.of(spare.getItem()), 1, false));
+                    }
+                }
+                return own("friend", new TimedTask(new FollowTask(Target.of(friend), 3), 20 * (30 + npc.random().nextInt(60)), "hanging out with " + name));
+            }
+        }
+        // a very sad or very happy NPC shows it
+        var mind = social.mind();
+        if (mind.get(dev.mcattle.core.social.Emotion.JOY) > 0.8 && ready("dance")) {
+            cooldownUntil.put("dance", npc.age() + 20L * 60 * 4);
+            return own("dance", new EmoteTask("dance", null));
+        }
+        if (mind.get(dev.mcattle.core.social.Emotion.SADNESS) > 0.7 && ready("sulk")) {
+            cooldownUntil.put("sulk", npc.age() + 20L * 60 * 3);
+            return own("sulk", new EmoteTask("sneak", null));
         }
 
         int pickTier = bestTier(inv, PickaxeItem.class);

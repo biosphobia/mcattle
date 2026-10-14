@@ -325,6 +325,7 @@ public final class NpcManager {
     }
 
     public void tick() {
+        if (server.getTicks() % 6000 == 0 && !brains.isEmpty()) saveRegistry(); // feelings change all the time
         if (server.getTicks() % 200 == 0) {
             long now = server.getTicks();
             gifts.values().removeIf(t -> t < now);

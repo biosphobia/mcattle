@@ -155,6 +155,14 @@ public final class CommandRouter {
     private void applyLocal(List<NpcBrain> targets, ParsedCommand parsed, ServerPlayerEntity speaker, String text) {
         boolean first = true;
         for (NpcBrain npc : targets) {
+            npc.social().heard(speaker, text);
+            boolean control = parsed.steps().stream().anyMatch(s -> s.action().equals(dev.mcattle.core.llm.Skills.STOP)
+                    || s.action().equals(dev.mcattle.core.llm.Skills.AUTONOMOUS));
+            if (!control && npc.social().refuses(speaker)) {
+                npc.say(Lines.refuse(npc, speaker.getName().getString())); // holds a grudge
+                first = false;
+                continue;
+            }
             String say = first || npc.random().nextInt(3) == 0 ? Lines.ack(npc) : "";
             if (apply(npc, say, "replace", parsed.steps(), speaker)) npc.setGoal(text, speaker);
             first = false;
@@ -162,6 +170,7 @@ public final class CommandRouter {
     }
 
     private void applyOrders(Orders orders, List<NpcBrain> targets, ServerPlayerEntity speaker, @Nullable String text) {
+        java.util.Set<NpcBrain> felt = new java.util.HashSet<>();
         for (Orders.NpcOrder order : orders.orders()) {
             if (order == null || order.npc() == null) continue;
             NpcBrain npc = manager().byName(order.npc());
@@ -171,7 +180,19 @@ public final class CommandRouter {
             String mode = order.mode() == null ? "replace" : order.mode().toLowerCase(Locale.ROOT);
             if (apply(npc, order.say() == null ? "" : order.say(), mode, steps, speaker) && text != null) npc.setGoal(text, speaker);
             dev.mcattle.npc.NpcMemory.apply(npc, order.remember(), order.forget(), order.settings(), speaker);
+            applyFeelings(npc, order, speaker, text);
+            felt.add(npc);
         }
+        // addressed NPCs the model left out still react to the tone of what was said
+        if (text != null) for (NpcBrain npc : targets) if (!felt.contains(npc)) npc.social().heard(speaker, text);
+    }
+
+    /** The model's judgment of how the message made the NPC feel, or a cheap guess if it gave none. */
+    static void applyFeelings(NpcBrain npc, Orders.NpcOrder order, ServerPlayerEntity speaker, @Nullable String text) {
+        boolean judged = order.feel() != null && !order.feel().isBlank();
+        if (judged) npc.social().applyFeel(order.feel(), speaker);
+        else if (text != null && speaker != null) npc.social().heard(speaker, text);
+        npc.social().applyBonds(order.bond(), speaker);
     }
 
     /**
@@ -199,6 +220,7 @@ public final class CommandRouter {
                 return;
             }
             apply(npc, mine.say() == null ? "" : mine.say(), "replace", mine.steps(), speaker); // goal and try count stay
+            npc.social().applyFeel(mine.feel(), speaker);
             dev.mcattle.npc.NpcMemory.apply(npc, mine.remember(), mine.forget(), mine.settings(), speaker);
         }));
         return true;

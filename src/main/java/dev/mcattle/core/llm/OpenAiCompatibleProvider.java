@@ -41,7 +41,7 @@ public final class OpenAiCompatibleProvider implements LlmProvider {
 
     @Override
     public LlmResult<Banter> banter(String situation) throws Exception {
-        String schema = "\nRespond with ONLY JSON like {\"lines\":[{\"npc\":\"Name\",\"text\":\"...\"}]}";
+        String schema = "\nRespond with ONLY JSON like {\"lines\":[{\"npc\":\"Name\",\"text\":\"...\",\"feel\":\"\"}]}";
         return call(SystemPrompt.BANTER + schema, situation, 300, Banter.class);
     }
 

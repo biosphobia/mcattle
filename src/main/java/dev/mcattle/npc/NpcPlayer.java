@@ -20,6 +20,7 @@ public class NpcPlayer extends ServerPlayerEntity {
     @Nullable
     private NpcBrain brain;
     private int respawnTimer = -1;
+    @Nullable private java.util.UUID pendingGiftFrom;
 
     public NpcPlayer(MinecraftServer server, ServerWorld world, GameProfile profile) {
         super(server, world, profile);
@@ -112,6 +113,29 @@ public class NpcPlayer extends ServerPlayerEntity {
         ServerWorld world = getServerWorld();
         world.getChunkManager().unloadEntity(this);
         world.getChunkManager().loadEntity(this);
+    }
+
+    /** Picking up an item someone threw at us: remember the thrower until the pickup stat names the item. */
+    @Override
+    public void sendPickup(net.minecraft.entity.Entity item, int count) {
+        super.sendPickup(item, count);
+        if (item instanceof net.minecraft.entity.ItemEntity ie) {
+            pendingGiftFrom = ((dev.mcattle.mixin.ItemEntityAccessor) ie).mcattle$getThrower();
+        }
+    }
+
+    @Override
+    public void increaseStat(net.minecraft.stat.Stat<?> stat, int amount) {
+        super.increaseStat(stat, amount);
+        if (pendingGiftFrom != null && stat.getType() == net.minecraft.stat.Stats.PICKED_UP
+                && stat.getValue() instanceof net.minecraft.item.Item item) {
+            java.util.UUID from = pendingGiftFrom;
+            pendingGiftFrom = null;
+            ServerPlayerEntity giver = getServer().getPlayerManager().getPlayer(from);
+            if (giver != null && giver != this && brain != null) {
+                brain.social().received(giver, new net.minecraft.item.ItemStack(item, amount), amount);
+            }
+        }
     }
 
     /** Clears the "removed" flag left over from the join path (same as other fake-player mods do). */

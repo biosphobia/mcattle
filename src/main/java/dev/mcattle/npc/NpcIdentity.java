@@ -35,6 +35,8 @@ public final class NpcIdentity {
     public String guard;
     /** Canned lines rewritten in the NPC's speaking style (category -> lines). */
     public Map<String, List<String>> styleLines;
+    /** Feelings and relationships with players and other NPCs. */
+    public dev.mcattle.core.social.SocialMind social;
 
     public List<String> memories() {
         if (memories == null) memories = new ArrayList<>();
