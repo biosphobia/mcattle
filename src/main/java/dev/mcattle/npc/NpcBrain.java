@@ -57,6 +57,7 @@ public final class NpcBrain {
     private final SocialBehavior social;
     private final NpcSocial feelings;
     private final StatusIndicator indicator;
+    private final NpcTraits traits;
     private final AutonomousPlanner planner;
     private final Random random = new Random();
 
@@ -92,6 +93,7 @@ public final class NpcBrain {
         this.social = new SocialBehavior(this);
         this.feelings = new NpcSocial(this);
         this.indicator = new StatusIndicator(this);
+        this.traits = new NpcTraits(this);
         this.planner = new AutonomousPlanner(this);
         this.autonomous = identity.autonomous;
     }
@@ -165,6 +167,12 @@ public final class NpcBrain {
         return reflex != null ? reflex : current;
     }
 
+    /** The current order if it is waiting for a player to do something. */
+    @Nullable
+    public dev.mcattle.task.WaitForTask waiting() {
+        return current instanceof dev.mcattle.task.WaitForTask w ? w : null;
+    }
+
     /** True if the task is the current order or still queued (reflexes like eating don't count as replacing it). */
     public boolean hasTask(Task task) {
         return current == task || orders.contains(task);
@@ -175,6 +183,8 @@ public final class NpcBrain {
     }
 
     public StatusIndicator indicator() { return indicator; }
+    /** Personality traits from experiences and players. */
+    public NpcTraits traits() { return traits; }
 
     /** What floats above its head: "♪ listening", "✎ thinking..", "⛏ mining iron ore", or "" when idle. */
     public String statusLine() {
@@ -308,6 +318,7 @@ public final class NpcBrain {
 
         try {
             feelings.tick();
+            traits.tick();
             checkReflexes();
             if (reflex != null) {
                 Task.Status s = reflex.tick(this);
@@ -346,6 +357,18 @@ public final class NpcBrain {
         finished.stop(this);
         nav.stop();
         boolean fromPlayer = !planner.owns(finished);
+        if (status == Task.Status.SUCCESS) traits.did(finished);
+        if (status == Task.Status.SUCCESS && finished instanceof dev.mcattle.task.WaitForTask w && w.happened() != null
+                && w.wantsFollowUp(orders.isEmpty())) {
+            // the player did their part: ask what to do about it (no waiting for the rest of a stale plan)
+            ServerPlayerEntity who = w.player(this);
+            if (who == null) who = lastSpeaker();
+            if (who != null && manager.mod().router().followUp(this, who, w.happened())) {
+                for (Task t : orders) t.stop(this);
+                orders.clear();
+                return;
+            }
+        }
         planner.onFinished(finished, status);
         if (status == Task.Status.FAILURE && fromPlayer) {
             String reason = finished.failureReason();
@@ -374,6 +397,7 @@ public final class NpcBrain {
         // strong feelings (fear of someone, a grudge) take over unless busy with something a player asked for
         if (current == null || planner.owns(current) || current.isOpenEnded()) {
             Task impulse = feelings.impulse();
+            if (impulse == null) impulse = traits.fearReflex();
             if (impulse != null) {
                 startReflex(impulse);
                 return;
@@ -439,6 +463,7 @@ public final class NpcBrain {
     }
 
     public void onDeath(DamageSource source) {
+        traits.died(source);
         Entity killer = source.getAttacker();
         if (killer != null) feelings.onDeath(killer, isRequestedFight(killer));
         else feelings.onDeath(null, false);

@@ -138,6 +138,18 @@ public class NpcPlayer extends ServerPlayerEntity {
         }
     }
 
+    @Override
+    public net.minecraft.item.ItemStack eatFood(net.minecraft.world.World world, net.minecraft.item.ItemStack stack) {
+        if (brain != null && stack.isFood()) brain.traits().ate(stack.copy());
+        return super.eatFood(world, stack);
+    }
+
+    @Override
+    public boolean onKilledOther(ServerWorld world, net.minecraft.entity.LivingEntity other) {
+        if (brain != null) brain.traits().killed(other);
+        return super.onKilledOther(world, other);
+    }
+
     /** Clears the "removed" flag left over from the join path (same as other fake-player mods do). */
     public void markPresent() {
         unsetRemoved();

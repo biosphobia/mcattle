@@ -74,7 +74,7 @@ public final class Skills {
         CATALOG.put(SLEEP, "sleep in a nearby or carried bed if it's night");
         CATALOG.put(EMOTE, "body language; options type=greet|wave|dance|jump|spin|nod|shake|sneak|look|flex|bow|panic");
         CATALOG.put(SAY, "say target text in chat mid-plan");
-        CATALOG.put(WAIT, "wait count seconds");
+        CATALOG.put(WAIT, "wait count seconds; or wait for the player (target) to do something: options for=chat|block|item|near|far (their answer, a block placed/broken near them, an item tossed to you, coming within radius=N, walking away), count = max seconds (default 180); you are asked what to do next once it happens unless more steps follow (then=think forces that)");
         CATALOG.put(DEPOSIT, "put item ('*' = everything except tools/food) into the nearest chest");
         CATALOG.put(WITHDRAW, "take count of item from nearby chests");
         CATALOG.put(FARM, "harvest grown crops nearby and replant; count = how many");

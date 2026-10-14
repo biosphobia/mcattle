@@ -61,6 +61,8 @@ public final class NpcSocial {
 
     public void event(SocialEvent ev, Entity other, double strength, @Nullable String detail) {
         if (other == npc.npc()) return;
+        if (ev == SocialEvent.PRAISED) npc.traits().praised(true);
+        if (ev == SocialEvent.INSULTED) npc.traits().praised(false);
         mind().event(ev, key(other), other.getName().getString(), other instanceof NpcPlayer, strength, detail, now());
     }
 
@@ -152,6 +154,12 @@ public final class NpcSocial {
         if (giver == npc.npc() || count <= 0) return;
         double value = value(stack) * Math.min(3, 0.6 + count / 8.0);
         String what = count + " " + Registries.ITEM.getId(stack.getItem()).getPath().replace('_', ' ');
+        npc.traits().gotGift(stack);
+        if (npc.waiting() != null) npc.waiting().offerItem(npc, giver, stack);
+        if (npc.traits().adores(stack)) {
+            value += 1.5; // the thing it's obsessed with!
+            mind().feel("delighted", 2);
+        }
         event(SocialEvent.GIFT, giver, Math.max(0.3, Math.min(3, value)), what);
     }
 

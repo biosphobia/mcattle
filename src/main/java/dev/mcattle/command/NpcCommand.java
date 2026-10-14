@@ -112,6 +112,19 @@ public final class NpcCommand {
                                     }
                                     return 1;
                                 })))
+                .then(literal("traits")
+                        .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
+                                .executes(ctx -> {
+                                    for (NpcBrain b : select(ctx, mod, StringArgumentType.getString(ctx, "npc"))) {
+                                        var list = b.traits().set().strongest(40);
+                                        ctx.getSource().sendFeedback(() -> Text.literal(b.name() + " - " + list.size() + " traits").formatted(Formatting.GOLD), false);
+                                        for (var t : list) {
+                                            String line = String.format("  %s (%s, x%d)", t.text, t.level(), t.reinforced);
+                                            ctx.getSource().sendFeedback(() -> Text.literal(line), false);
+                                        }
+                                    }
+                                    return 1;
+                                })))
                 .then(literal("remember")
                         .then(argument("npc", StringArgumentType.word()).suggests(npcNames)
                                 .then(argument("text", StringArgumentType.greedyString())

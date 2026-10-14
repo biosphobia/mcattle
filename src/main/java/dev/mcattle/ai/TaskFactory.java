@@ -194,7 +194,13 @@ public final class TaskFactory {
                 return text.isBlank() ? null : new SayTask(text);
             }
             case Skills.WAIT -> {
-                return new WaitTask(20 * Math.max(1, Math.min(count == 0 ? 5 : count, 300)));
+                String forWhat = step.option("for", "");
+                if (forWhat.isBlank()) return new WaitTask(20 * Math.max(1, Math.min(count == 0 ? 5 : count, 300)));
+                WaitForTask.Kind kind = WaitForTask.kind(forWhat);
+                Target who = step.target().isBlank() ? (speaker != null ? Target.of(speaker) : null) : target(npc, step.target(), speaker);
+                int seconds = count > 0 ? Math.min(count, 900) : 180;
+                double radius = step.intOption("radius", kind == WaitForTask.Kind.NEAR ? 4 : kind == WaitForTask.Kind.FAR ? 16 : 6);
+                return new WaitForTask(kind, who, seconds * 20, radius, step.option("then", "").equalsIgnoreCase("think"));
             }
             case Skills.DEPOSIT -> {
                 return new ChestTask(true, step.item().isBlank() ? ItemQuery.ANY : item(step.item()), count);

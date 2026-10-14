@@ -98,6 +98,15 @@ public final class CommandRouter {
         // except plain "stop" style orders which end it the normal way
         boolean stopOrder = parsed.understood() && !parsed.complex()
                 && parsed.steps().stream().anyMatch(s -> s.action().equals(dev.mcattle.core.llm.Skills.STOP) || s.action().equals(dev.mcattle.core.llm.Skills.AUTONOMOUS));
+        // an NPC waiting for this player's answer takes the message
+        if (!stopOrder && forced == null) {
+            boolean taken = false;
+            for (NpcBrain b : manager().all()) {
+                var w = b.waiting();
+                if (w != null && (addressed.isEmpty() || addressed.contains(b)) && w.offerChat(b, speaker, text)) taken = true;
+            }
+            if (taken) return;
+        }
         ActivitySession activity = mod.activities().sessionFor(speaker, addressed);
         if (activity != null && !stopOrder && forced == null) {
             mod.activities().chat(activity, speaker, text);
@@ -193,6 +202,7 @@ public final class CommandRouter {
         if (judged) npc.social().applyFeel(order.feel(), speaker);
         else if (text != null && speaker != null) npc.social().heard(speaker, text);
         npc.social().applyBonds(order.bond(), speaker);
+        npc.traits().apply(order.traits());
     }
 
     /**
@@ -221,7 +231,32 @@ public final class CommandRouter {
             }
             apply(npc, mine.say() == null ? "" : mine.say(), "replace", mine.steps(), speaker); // goal and try count stay
             npc.social().applyFeel(mine.feel(), speaker);
+            npc.traits().apply(mine.traits());
             dev.mcattle.npc.NpcMemory.apply(npc, mine.remember(), mine.forget(), mine.settings(), speaker);
+        }));
+        return true;
+    }
+
+    /**
+     * The player did what an NPC was waiting for ("Steve placed white_wool at ..."): ask the planner what the NPC
+     * does next. Returns false when no model call can be made (the NPC then just carries on with its queue).
+     */
+    public boolean followUp(NpcBrain npc, ServerPlayerEntity speaker, String happened) {
+        LlmService llm = mod.llm();
+        if (llm == null || llm.blockedReason() != null) return false;
+        String situation = Situation.forFollowUp(manager(), speaker, npc, happened);
+        npc.setThinking(20 * 20);
+        llm.plan(situation).thenAccept(result -> mod.server().execute(() -> {
+            npc.setThinking(0);
+            if (manager() == null || manager().byUuid(npc.npc().getUuid()) != npc) return;
+            if (result.isEmpty() || result.get().orders() == null) return;
+            for (Orders.NpcOrder o : result.get().orders()) {
+                if (o == null || !npc.name().equalsIgnoreCase(o.npc())) continue;
+                List<Orders.Step> steps = o.steps() == null ? List.of() : o.steps();
+                apply(npc, o.say() == null ? "" : o.say(), steps.isEmpty() ? "none" : "replace", steps, speaker);
+                dev.mcattle.npc.NpcMemory.apply(npc, o.remember(), o.forget(), o.settings(), speaker);
+                applyFeelings(npc, o, speaker, null);
+            }
         }));
         return true;
     }

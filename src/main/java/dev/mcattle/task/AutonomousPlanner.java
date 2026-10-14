@@ -123,6 +123,12 @@ public final class AutonomousPlanner {
                 return own("friend", new TimedTask(new FollowTask(Target.of(friend), 3), 20 * (30 + npc.random().nextInt(60)), "hanging out with " + name));
             }
         }
+        // quirks: go get (and admire) the thing it adores
+        if (!night && ready("indulge")) {
+            cooldownUntil.put("indulge", npc.age() + 20L * 60 * (4 + npc.random().nextInt(6)));
+            Task indulge = npc.traits().indulge();
+            if (indulge != null) return own("indulge", indulge);
+        }
         // a very sad or very happy NPC shows it
         var mind = social.mind();
         if (mind.get(dev.mcattle.core.social.Emotion.JOY) > 0.8 && ready("dance")) {

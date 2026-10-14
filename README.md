@@ -44,6 +44,10 @@ their own, chat, greet people, and take orders by **text chat** or **push-to-tal
   y=16 and branch-mining), a furnace, fuel, smelting, then crafting.
 - **Get on with it.** No narrating plans in chat: they answer briefly (or not at all) and start working.
   While a build design is being drawn up, they go chop wood for it.
+- **Wait for you.** Anything that needs your part first ("wait till i get back", "copy what i build", "i'll
+  throw you something, then...", "tell me when i'm close", your move in a game) makes the NPC pause and watch
+  you (`⌛ waiting for Steve's move`). When you answer, build, toss an item, come close or walk away, Claude
+  decides what it does next. Longer back-and-forth games still run as activities.
 - **Keep at it.** NPCs remember what you asked for until it's done. If a step fails (no trees nearby, a path
   is blocked) or they die, they quietly ask for another way and carry on, up to 3 times, and only then
   tell you what went wrong.
@@ -85,6 +89,26 @@ Every NPC has an inner life that persists across restarts:
   refuse orders from someone they resent ("maybe if you apologized first"). Emotion particles show it too:
   angry puffs, tears, sparkles, hearts near favourite people.
 - `/npc feelings <npc>` shows the mood, temperament and relationships.
+
+## Traits
+
+On top of moods and relationships, NPCs pick up lasting **traits** from experiences and from what players
+say, and these shape what they do and how they think. Examples: "afraid of creepers", "obsessed with diamond
+blocks", "thinks cows are spies", "enjoys mining", "insecure about being useless", "fond of poppies".
+
+- **Strength.** Each trait has a strength (faint, mild, strong, defining). Pushing the same idea again and
+  again ("you LOVE pink wool", "pink wool is the best", "build it in pink wool") strengthens the same trait
+  instead of adding new ones. Contradicting it weakens it, and asking them to drop it removes it. Traits
+  fade slowly when nothing reinforces them; defining ones last for weeks. Up to 40 per NPC.
+- **From experience, with no AI needed.** Dying to the same thing twice makes them afraid of it. Getting
+  the same gift a few times makes them fond of it. Doing a job a lot makes them enjoy it. Lots of praise
+  builds confidence and lots of mockery makes them insecure. They also take pride in slaying a mob type
+  after many kills.
+- **Effects.** Claude sees the strongest traits in every request, so traits steer choices, build materials,
+  conversation and reactions. The NPC also acts on two kinds directly: it runs from things it's afraid of,
+  and in free time it goes and gets the thing it adores (and places one down to admire it). Getting that
+  thing as a gift makes its day.
+- `/npc traits <npc>` lists them.
 
 ## Memory
 
@@ -253,6 +277,7 @@ Examples:
 | `/npc inventory <npc>` | Opens the NPC's inventory as a chest (give or take items) |
 | `/npc tphere <npc>` | Teleports the NPC to you |
 | `/npc gamemode <npc> survival\|creative` | Op only. Creative NPCs build instantly, without gathering. |
+| `/npc traits <npc>` | Its traits with strength and how often they were reinforced |
 | `/npc feelings <npc>` | Mood, temperament and relationships (with memories of what people did) |
 | `/npc memory <npc>` | What it remembers (instructions, facts, settings) |
 | `/npc remember <npc> <text>` · `/npc forget <npc> <n\|text\|all>` | Edit its memory by hand |

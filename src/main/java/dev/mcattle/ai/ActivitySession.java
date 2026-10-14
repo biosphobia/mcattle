@@ -219,6 +219,7 @@ public final class ActivitySession {
                 dev.mcattle.npc.NpcMemory.apply(npc, order.remember(), order.forget(), order.settings(), speaker);
                 npc.social().applyFeel(order.feel(), speaker);
                 npc.social().applyBonds(order.bond(), speaker);
+                npc.traits().apply(order.traits());
             }
         }
         String wf = turn.waitFor() == null ? "steps" : turn.waitFor().toLowerCase(Locale.ROOT).trim();

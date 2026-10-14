@@ -75,6 +75,14 @@ public final class Situation {
                 + forCommand(manager, speaker, npc.goal() == null ? "" : npc.goal(), false, List.of(npc), false);
     }
 
+    /** Report for deciding what to do after the player did what the NPC was waiting for. */
+    public static String forFollowUp(NpcManager manager, ServerPlayerEntity speaker, NpcBrain npc, String happened) {
+        return "FOLLOW-UP: " + npc.name() + " was waiting on " + speaker.getName().getString() + ". What happened: "
+                + happened + ". Decide " + npc.name() + "'s next steps toward the request below (react briefly in "
+                + "character; wait again if it's the player's turn again). Only " + npc.name() + " needs an order.\n"
+                + forCommand(manager, speaker, npc.goal() == null ? "(continue what you were doing with them)" : npc.goal(), false, List.of(npc), false);
+    }
+
     public static String forBanter(NpcManager manager, List<NpcBrain> npcs, List<ServerPlayerEntity> players) {
         StringBuilder sb = new StringBuilder(600);
         NpcBrain first = npcs.get(0);
@@ -89,6 +97,8 @@ public final class Situation {
             List<Entity> others = new java.util.ArrayList<>();
             for (NpcBrain o : npcs) if (o != npc) others.add(o.npc());
             others.addAll(players);
+            String traits = npc.traits().describe(5);
+            if (!traits.isEmpty()) sb.append("  traits: ").append(traits).append("\n");
             sb.append(npc.social().report(others, 1));
         }
         if (!players.isEmpty()) {
@@ -124,6 +134,8 @@ public final class Situation {
             for (NpcBrain o : session.participants) if (o != npc) others.add(o.npc());
             ServerPlayerEntity host = session.host();
             if (host != null) others.add(host);
+            String traits = npc.traits().describe(5);
+            if (!traits.isEmpty()) sb.append("  traits: ").append(traits).append("\n");
             sb.append(npc.social().report(others, 0));
         }
         if (world != null) {
@@ -165,6 +177,8 @@ public final class Situation {
         sb.append("Build request: \"").append(request.replace('"', '\'')).append("\"\n");
         sb.append("Size: ").append(size == null || size.isBlank() ? "medium (use judgment)" : size).append("\n");
         boolean creative = npc.npc().isCreative();
+        String quirks = npc.traits().describe(4);
+        if (!quirks.isEmpty()) sb.append("Lead builder's personality (a fitting touch is welcome): ").append(quirks).append("\n");
         sb.append("Builders: ");
         List<String> builders = new java.util.ArrayList<>();
         for (NpcBrain b : npc.manager().all()) {
@@ -216,6 +230,8 @@ public final class Situation {
             if (!memory.isEmpty()) sb.append("  recently: ").append(String.join(" / ", memory)).append("\n");
             String longTerm = dev.mcattle.npc.NpcMemory.describe(npc);
             if (!longTerm.isEmpty()) sb.append("  long-term memory (follow it): ").append(longTerm).append("\n");
+            String traits = npc.traits().describe(8);
+            if (!traits.isEmpty()) sb.append("  traits (let them drive choices): ").append(traits).append("\n");
             sb.append(npc.social().report(relevantTo(npc, reference), 3));
         } else {
             sb.append("  mood: ").append(npc.social().brief(reference)).append("\n");

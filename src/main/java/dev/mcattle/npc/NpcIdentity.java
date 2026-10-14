@@ -37,6 +37,8 @@ public final class NpcIdentity {
     public Map<String, List<String>> styleLines;
     /** Feelings and relationships with players and other NPCs. */
     public dev.mcattle.core.social.SocialMind social;
+    /** Personality traits picked up from experiences and from what players say. */
+    public dev.mcattle.core.social.TraitSet traits;
 
     public List<String> memories() {
         if (memories == null) memories = new ArrayList<>();

@@ -130,6 +130,7 @@ public final class StatusIndicator {
         else if (l.contains("eat") || l.contains("food") || l.contains("farm")) icon = "✿";
         else if (l.contains("sleep")) icon = "☾";
         else if (l.contains("give") || l.contains("giving") || l.contains("chest")) icon = "✉";
+        else if (l.contains("waiting")) icon = "⌛";
         else if (l.contains("danc") || l.contains("party") || l.contains("activity") || l.contains("play")) icon = "♫";
         else icon = "•";
         if (d.length() > 26) d = d.substring(0, 25) + "…";

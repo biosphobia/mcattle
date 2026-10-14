@@ -30,14 +30,16 @@ public record Orders(
             @JsonPropertyDescription("How this makes the NPC feel, space separated who:feeling[:strength 1-3] tokens. who = a player/NPC name or 'self'; feeling = an event (insulted, praised, thanked, teased, apologized, threatened, betrayed, flirted, helped, gift, played_with, bossed_around, ignored) or any emotion word (jealous, grateful, embarrassed, lonely, proud, smitten...). Empty if nothing notable.")
             String feel,
             @JsonPropertyDescription("Update how the NPC sums up a relationship when it meaningfully changes: 'Name=short description; Name2=...'. Empty if unchanged.")
-            String bond) {
+            String bond,
+            @JsonPropertyDescription("Lasting personality traits this shapes, ';' separated: '+trait' strengthen/add, '++trait' strongly, '-trait' weaken, '--trait' drop. Reuse an existing trait's exact wording to reinforce it. Any trait goes, even weird ones (obsessed with pink wool, thinks cows are spies). Empty if none.")
+            String traits) {
 
         public NpcOrder(String npc, String say, String mode, List<Step> steps) {
-            this(npc, say, mode, steps, List.of(), List.of(), "", "", "");
+            this(npc, say, mode, steps, List.of(), List.of(), "", "", "", "");
         }
 
         public NpcOrder(String npc, String say, String mode, List<Step> steps, List<String> remember, List<String> forget, String settings) {
-            this(npc, say, mode, steps, remember, forget, settings, "", "");
+            this(npc, say, mode, steps, remember, forget, settings, "", "", "");
         }
     }
 
