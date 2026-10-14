@@ -123,7 +123,8 @@ public final class VoiceService {
     /** Whisper hallucinates these on silence. */
     private static boolean isNoise(String text) {
         String t = text.trim().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z ]", "").trim();
-        return t.isEmpty() || t.equals("you") || t.equals("thank you") || t.equals("thanks for watching") || t.equals("bye");
+        return t.isEmpty() || t.equals("you") || t.equals("thank you") || t.equals("thanks for watching") || t.equals("bye")
+                || t.equals("the") || t.equals("huh") || t.equals("uh") || t.equals("um");
     }
 
     private void status(ServerPlayerEntity player, String message) {

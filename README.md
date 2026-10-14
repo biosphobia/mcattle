@@ -176,17 +176,24 @@ Created on first start. The most important fields:
 
 ### Voice (speech-to-text)
 
-The Claude API doesn't transcribe audio, so push-to-talk audio goes to the **server**, which sends it to any
-OpenAI-compatible `/v1/audio/transcriptions` endpoint. The simplest free option is
-[whisper.cpp](https://github.com/ggerganov/whisper.cpp)'s server on the Minecraft server machine:
+Push-to-talk works out of the box, in singleplayer too. By default speech is recognized **on the player's own
+computer** with [Vosk](https://alphacephei.com/vosk/), offline and free. The first time you hold the key, the
+client downloads the Vosk engine (~26 MB, from Maven Central, checksum-checked) and a small English model
+(~40 MB) into `config/mcattle/speech/`. The HUD shows the progress. After that it needs no internet. Only the
+recognized text is sent to the server.
 
-```sh
-./whisper-server -m models/ggml-base.en.bin --port 8080 --inference-path /v1/audio/transcriptions
-```
+Pick another way in `config/mcattle-client.json` with `"speechToText"`:
 
-faster-whisper-server/speaches, LocalAI, Groq or OpenAI work as well (set `speech.apiKey` if needed). The
-transcript appears in chat as `<You> ... [voice]` and is handled like a typed message. Voice messages don't
-need a name: everyone within `voiceRange` takes the order.
+| value | where speech is recognized | what you need |
+|---|---|---|
+| `"local"` (default) | your computer, offline (Vosk) | nothing |
+| `"http"` | an OpenAI-compatible transcription API, called from your computer | `sttEndpoint` + `sttApiKey`, e.g. OpenAI (`https://api.openai.com/v1/audio/transcriptions`, model `whisper-1`) or Groq (`https://api.groq.com/openai/v1/audio/transcriptions`, model `whisper-large-v3`) |
+| `"server"` | the Minecraft server sends the audio to `speech.endpoint` in `config/mcattle.json` | a whisper server the server can reach, e.g. [whisper.cpp](https://github.com/ggerganov/whisper.cpp): `./whisper-server -m models/ggml-base.en.bin --port 8080 --inference-path /v1/audio/transcriptions` |
+
+Other languages: set `localModelUrl` to another model from the [Vosk model list](https://alphacephei.com/vosk/models).
+`http` is the most accurate. `local` is good for short commands and may mishear unusual NPC names, but
+voice messages don't need a name anyway: every NPC within `voiceRange` hears them. The transcript appears
+in chat as `<You> ... [voice]` and is handled like a typed message.
 
 macOS: the Minecraft launcher needs microphone permission (System Settings → Privacy & Security → Microphone).
 
@@ -196,6 +203,7 @@ Each player with the mod picks how NPCs sound in `config/mcattle-client.json` (c
 
 ```jsonc
 {
+  // ... speechToText settings (see above), then:
   "enabled": true,
   "engine": "system",       // "system" (free, offline), "http" (OpenAI-compatible /v1/audio/speech) or "off"
   "volume": 1.0,            // also follows Minecraft's Master and Players sliders

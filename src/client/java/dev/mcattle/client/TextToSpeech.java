@@ -43,7 +43,7 @@ public final class TextToSpeech {
     private static final String[] MAC_VOICES = {"Samantha", "Daniel", "Karen", "Moira", "Tessa", "Rishi", "Fred", "Albert", "Junior", "Ralph", "Kathy"};
     private static final String[] ESPEAK_VARIANTS = {"m1", "m2", "m3", "m4", "m5", "m7", "f1", "f2", "f3", "f4"};
 
-    private final TtsConfig config;
+    private final ClientConfig config;
     private final ExecutorService worker = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "mcattle-tts");
         t.setDaemon(true);
@@ -58,7 +58,7 @@ public final class TextToSpeech {
     private record Playing(int entityId, Clip clip) {
     }
 
-    public TextToSpeech(TtsConfig config) {
+    public TextToSpeech(ClientConfig config) {
         this.config = config;
     }
 

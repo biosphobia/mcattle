@@ -28,6 +28,13 @@ public final class MCattleClient implements ClientModInitializer {
     private static KeyBinding pushToTalk;
     private final MicRecorder mic = new MicRecorder();
     private TextToSpeech tts;
+    private ClientConfig config;
+    private LocalSpeech localSpeech;
+    private final java.util.concurrent.ExecutorService sttWorker = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "mcattle-stt");
+        t.setDaemon(true);
+        return t;
+    });
     private String status = "";
     private long statusUntil;
     private long recordingSince;
@@ -42,7 +49,10 @@ public final class MCattleClient implements ClientModInitializer {
             String text = buf.readString(256);
             client.execute(() -> setStatus(text, 4000));
         });
-        tts = new TextToSpeech(TtsConfig.load(FabricLoader.getInstance().getConfigDir().resolve("mcattle-client.json")));
+        java.nio.file.Path configDir = FabricLoader.getInstance().getConfigDir();
+        config = ClientConfig.load(configDir.resolve("mcattle-client.json"));
+        tts = new TextToSpeech(config);
+        localSpeech = new LocalSpeech(configDir.resolve("mcattle").resolve("speech"), config.localModelUrl);
         ClientPlayNetworking.registerGlobalReceiver(NetIds.SPEAK, (client, handler, buf, sender) -> {
             int entityId = buf.readVarInt();
             int seed = buf.readInt();
@@ -73,6 +83,11 @@ public final class MCattleClient implements ClientModInitializer {
                 mic.start();
                 recordingSince = System.currentTimeMillis();
                 ClientPlayNetworking.send(NetIds.PTT_START, PacketByteBufs.create());
+                if (!"server".equalsIgnoreCase(config.speechToText) && !"http".equalsIgnoreCase(config.speechToText)
+                        && !localSpeech.isLoaded()) {
+                    // first use: start fetching/loading the recognizer while the player is still talking
+                    sttWorker.submit(() -> localSpeech.prepare(msg -> client.execute(() -> setStatus(msg, 60000))));
+                }
             } catch (Exception e) {
                 setStatus("microphone unavailable: " + e.getMessage(), 5000);
             }
@@ -82,12 +97,58 @@ public final class MCattleClient implements ClientModInitializer {
                 ClientPlayNetworking.send(NetIds.PTT_CANCEL, PacketByteBufs.create());
                 return;
             }
-            sendAudio(pcm);
-            setStatus("sending...", 3000);
+            String mode = config.speechToText == null ? "local" : config.speechToText.toLowerCase(java.util.Locale.ROOT);
+            if (mode.equals("server")) {
+                sendAudio(pcm);
+                setStatus("sending...", 3000);
+            } else {
+                transcribeHere(client, pcm, mode.equals("http"));
+            }
         }
         while (pushToTalk.wasPressed()) {
             // consume clicks so they don't queue up
         }
+    }
+
+    /** Speech recognition on this computer (Vosk offline, or an HTTP endpoint); only the text goes to the server. */
+    private void transcribeHere(MinecraftClient client, byte[] pcm, boolean http) {
+        setStatus("listening...", 20000);
+        sttWorker.submit(() -> {
+            try {
+                String text;
+                if (http) {
+                    var stt = new dev.mcattle.core.stt.SpeechToText(config.sttEndpoint, config.sttApiKey, config.sttModel, config.sttLanguage);
+                    text = stt.transcribeBlocking(dev.mcattle.core.stt.Wav.fromPcm16Mono(pcm, dev.mcattle.core.stt.Wav.SAMPLE_RATE), "");
+                } else {
+                    text = localSpeech.transcribe(pcm, msg -> client.execute(() -> setStatus(msg, 60000)));
+                }
+                String heard = text == null ? "" : text.trim();
+                client.execute(() -> {
+                    if (client.getNetworkHandler() == null) return;
+                    if (heard.isEmpty()) {
+                        ClientPlayNetworking.send(NetIds.PTT_CANCEL, PacketByteBufs.create());
+                        setStatus("didn't catch that", 2500);
+                        return;
+                    }
+                    PacketByteBuf buf = PacketByteBufs.create();
+                    buf.writeString(heard.length() > 500 ? heard.substring(0, 500) : heard, 512);
+                    ClientPlayNetworking.send(NetIds.VOICE_TEXT, buf);
+                    setStatus("", 0);
+                });
+            } catch (Exception e) {
+                Throwable cause = e instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null ? ite.getCause() : e;
+                org.slf4j.LoggerFactory.getLogger("mcattle-stt").warn("Speech recognition failed", cause);
+                client.execute(() -> {
+                    if (client.getNetworkHandler() != null) ClientPlayNetworking.send(NetIds.PTT_CANCEL, PacketByteBufs.create());
+                    setStatus("speech recognition failed: " + cause.getMessage(), 8000);
+                    if (client.player != null) {
+                        client.player.sendMessage(Text.literal("[MCattle] Speech recognition failed (" + cause.getMessage()
+                                + "). You can switch \"speechToText\" in config/mcattle-client.json to \"http\" or \"server\".")
+                                .formatted(net.minecraft.util.Formatting.GRAY), false);
+                    }
+                });
+            }
+        });
     }
 
     private void sendAudio(byte[] pcm) {
